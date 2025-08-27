@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="manifest" href="manifest.json">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKT Success Dashboard</title>
+    
+    <!-- PWA Manifest & Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#002147">
+
     <!-- Tailwind CSS CDN für schnelle und responsive Stile -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome für Icons -->
@@ -448,6 +452,84 @@
             return null;
         }
 
+        // --- PWA & SERVICE WORKER REGISTRIERUNG ---
+
+        // Diese Funktion registriert den Service Worker, sobald die Seite geladen ist.
+        function registerServiceWorker() {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+              .then(registration => {
+                console.log('Service Worker erfolgreich registriert:', registration);
+                // Optional: Hier die Funktion aufrufen, um nach Push-Berechtigungen zu fragen
+                // Wir könnten hier einen Button einblenden, der diese Funktion aufruft
+                // z.B. document.getElementById('enable-notifications-btn').style.display = 'block';
+              })
+              .catch(error => {
+                console.log('Service Worker Registrierung fehlgeschlagen:', error);
+              });
+          }
+        }
+
+        // Diese Funktion fragt den Benutzer nach der Erlaubnis für Benachrichtigungen.
+        // Du kannst sie aufrufen, wann immer es passt (z.B. nach dem Login oder per Button-Klick)
+        async function askForNotificationPermission() {
+          if (!('serviceWorker' in navigator)) {
+              console.log('Service Worker wird nicht unterstützt.');
+              return;
+          }
+          
+          const registration = await navigator.serviceWorker.ready;
+          const permissionResult = await Notification.requestPermission();
+          
+          if (permissionResult !== 'granted') {
+            console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
+            alert('Um Benachrichtigungen zu erhalten, musst du sie in den Browser-Einstellungen erlauben.');
+            return;
+          }
+          
+          console.log('Berechtigung erteilt. Abonnement wird erstellt...');
+          
+          try {
+            // Erstelle ein Abonnement für diesen Benutzer/Browser
+            // Der VAPID Key muss von deinem Push-Dienst (Backend) generiert werden.
+            // Er dient der sicheren Kommunikation.
+            // HINWEIS: Dies ist ein Platzhalter! Du musst deinen eigenen Key generieren.
+            const vapidPublicKey = 'DEIN_PUBLIC_VAPID_KEY_HIER_EINFUEGEN';
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+            });
+            
+            console.log('Push-Abonnement erfolgreich:', JSON.stringify(subscription));
+
+            // WICHTIG: Sende dieses 'subscription'-Objekt an dein Backend!
+            // Dein Backend (z.B. eine Serverless Function, die vom Apps Script getriggert wird)
+            // muss dieses Objekt speichern, um später Nachrichten an diesen Benutzer senden zu können.
+            // await fetch('/api/save-subscription', {
+            //   method: 'POST',
+            //   headers: { 'Content-Type': 'application/json' },
+            //   body: JSON.stringify(subscription),
+            // });
+            alert('Benachrichtigungen erfolgreich aktiviert!');
+
+          } catch (error) {
+            console.error('Fehler beim Erstellen des Push-Abonnements:', error);
+            alert('Fehler beim Aktivieren der Benachrichtigungen.');
+          }
+        }
+
+        // Hilfsfunktion, um den VAPID Key zu konvertieren
+        function urlBase64ToUint8Array(base64String) {
+          const padding = '='.repeat((4 - base64String.length % 4) % 4);
+          const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+        }
+
         // --- DASHBOARD FUNKTIONEN ---
         async function startDashboard(){
             const selectedUser = dom.userDropdownSelect.value;
@@ -477,6 +559,9 @@
             }
             
             if (enteredPassword === correctPassword) {
+                // *** NEU: Benutzer im localStorage speichern ***
+                localStorage.setItem('loggedInUser', selectedUser);
+
                 document.getElementById('user-select-screen').classList.add('hidden');
                 const dashboardContent = document.getElementById('dashboard-content');
                 dashboardContent.classList.remove('hidden');
@@ -1268,6 +1353,8 @@
 
         // --- EVENTS ---
         dom.userSwitchButton.addEventListener('click', () => {
+            // *** NEU: Gespeicherten Benutzer beim Ausloggen entfernen ***
+            localStorage.removeItem('loggedInUser');
             location.reload();
         });
 
@@ -1305,7 +1392,22 @@
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
-            populateUserDropdown();
+            // Registriere den Service Worker
+            registerServiceWorker();
+
+            // PWA-Logik zum automatischen Einloggen
+            const savedUser = localStorage.getItem('loggedInUser');
+            if (savedUser) {
+                // Wenn ein Benutzer gespeichert ist, überspringe den Login
+                document.getElementById('user-select-screen').style.display = 'none';
+                const dashboardContent = document.getElementById('dashboard-content');
+                dashboardContent.classList.remove('hidden');
+                dashboardContent.classList.add('flex');
+                fetchAndRenderDashboard(savedUser);
+            } else {
+                // Ansonsten zeige den normalen Login-Screen
+                populateUserDropdown();
+            }
 
             dom.userDropdownSelect.addEventListener('change', () => {
                 const passwordContainer = document.getElementById('password-container');
