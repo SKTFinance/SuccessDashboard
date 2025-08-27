@@ -523,15 +523,15 @@
               return;
           }
           
-          const registration = await navigator.serviceWorker.ready;
+          // *** GEÄNDERT: Zuerst Berechtigung anfragen, dann den Rest machen ***
           const permissionResult = await Notification.requestPermission();
-          
           if (permissionResult !== 'granted') {
             console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
             return;
           }
           
           console.log('Berechtigung erteilt. Abonnement wird erstellt...');
+          const registration = await navigator.serviceWorker.ready;
           
           try {
             // HINWEIS: Dies ist ein Platzhalter! Du musst deinen eigenen Key generieren.
