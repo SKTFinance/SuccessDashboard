@@ -325,8 +325,28 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // --- NEU: Firebase SDKs importieren ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
+
         // --- KONFIGURATION
+        // --- NEU: Deine Firebase Konfiguration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCRb2nZrC9U78fFxuVZu7NF9JxRxyZw864",
+            authDomain: "skt-dashboard-c7374.firebaseapp.com",
+            projectId: "skt-dashboard-c7374",
+            storageBucket: "skt-dashboard-c7374.appspot.com",
+            messagingSenderId: "936899917792",
+            appId: "1:936899917792:web:6470917c8ae8e410ee5d85"
+        };
+
+        // --- NEU: Firebase initialisieren ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const messaging = getMessaging(app);
+
         const spreadsheetId = "1n8NQjGpZpkETLFw7JoY96aYFzwR9_V0WtWwBM9MsN7w";
         const sheetDataName = "Daten";
         const sheetPromotionsName = "Anstehende Beförderungen";
@@ -507,65 +527,57 @@
           }
         }
 
-        // Diese Funktion fragt den Benutzer nach der Erlaubnis für Benachrichtigungen.
+        // --- NEU: Überarbeitete Funktion mit Firebase ---
         async function askForNotificationPermission() {
-          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-          const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
 
-          // Spezielle Logik für iOS: Zeige Anleitung, wenn nicht als App installiert.
-          if (isIOS && !isInStandaloneMode) {
-              document.getElementById('ios-instructions-modal').classList.remove('hidden');
-              return;
-          }
+            // Spezielle Logik für iOS: Zeige Anleitung, wenn nicht als App installiert.
+            if (isIOS && !isInStandaloneMode) {
+                document.getElementById('ios-instructions-modal').classList.remove('hidden');
+                return;
+            }
 
-          if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-              console.log('Push-Benachrichtigungen werden nicht unterstützt.');
-              return;
-          }
-          
-          // *** GEÄNDERT: Zuerst Berechtigung anfragen, dann den Rest machen ***
-          const permissionResult = await Notification.requestPermission();
-          if (permissionResult !== 'granted') {
-            console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
-            return;
-          }
-          
-          console.log('Berechtigung erteilt. Abonnement wird erstellt...');
-          const registration = await navigator.serviceWorker.ready;
-          
-          try {
-            // HINWEIS: Dies ist ein Platzhalter! Du musst deinen eigenen Key generieren.
-            const vapidPublicKey = 'DEIN_PUBLIC_VAPID_KEY_HIER_EINFUEGEN';
-            const subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
-            });
+            if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+                alert('Dein Browser unterstützt leider keine Push-Benachrichtigungen.');
+                return;
+            }
             
-            console.log('Push-Abonnement erfolgreich:', JSON.stringify(subscription));
+            console.log('Frage nach Berechtigung...');
+            const permission = await Notification.requestPermission();
 
-            // WICHTIG: Sende dieses 'subscription'-Objekt an dein Backend!
-            // await fetch('/api/save-subscription', {
-            //   method: 'POST',
-            //   headers: { 'Content-Type': 'application/json' },
-            //   body: JSON.stringify(subscription),
-            // });
+            if (permission !== 'granted') {
+                console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
+                return;
+            }
 
-          } catch (error) {
-            console.error('Fehler beim Erstellen des Push-Abonnements:', error);
-          }
+            console.log('Berechtigung erteilt. Hole Token...');
+            try {
+                // HINWEIS: Ersetze diesen Key mit deinem eigenen aus der Firebase Konsole!
+                const vapidKey = 'DEIN_FIREBASE_VAPID_KEY_HIER_EINFUEGEN';
+                const currentToken = await getToken(messaging, { vapidKey: vapidKey });
+
+                if (currentToken) {
+                    console.log('FCM Token erhalten:', currentToken);
+                    
+                    // Speichere den Token in Firestore
+                    const userName = localStorage.getItem('loggedInUser');
+                    if (userName) {
+                        const userDocRef = doc(db, "subscriptions", userName);
+                        await setDoc(userDocRef, { token: currentToken }, { merge: true });
+                        console.log(`Token für ${userName} in Firestore gespeichert.`);
+                        alert('Benachrichtigungen erfolgreich aktiviert!');
+                    } else {
+                        console.error('Kein eingeloggter Benutzer gefunden, um Token zu speichern.');
+                    }
+                } else {
+                    console.log('Kein Registrierungs-Token verfügbar. Fordere Berechtigung an.');
+                }
+            } catch (err) {
+                console.error('Fehler beim Abrufen des Tokens:', err);
+            }
         }
 
-        // Hilfsfunktion, um den VAPID Key zu konvertieren
-        function urlBase64ToUint8Array(base64String) {
-          const padding = '='.repeat((4 - base64String.length % 4) % 4);
-          const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-          const rawData = window.atob(base64);
-          const outputArray = new Uint8Array(rawData.length);
-          for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i);
-          }
-          return outputArray;
-        }
 
         // --- DASHBOARD FUNKTIONEN ---
         async function startDashboard(){
