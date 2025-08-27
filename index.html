@@ -126,6 +126,20 @@
             background-color: var(--color-skt-grey-light);
             color: var(--color-skt-blue-light);
         }
+
+        /* Stile für das iOS-Anleitungs-Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen text-skt-blue">
@@ -295,6 +309,20 @@
                 </section>
             </div>      
         </main>
+    </div>
+
+    <!-- iOS Anleitung Modal -->
+    <div id="ios-instructions-modal" class="modal-overlay hidden">
+        <div class="bg-white rounded-lg shadow-xl p-6 m-4 max-w-sm text-center">
+            <h3 class="text-xl font-bold text-skt-blue mb-2">Benachrichtigungen aktivieren</h3>
+            <p class="text-gray-600 mb-4">Um Benachrichtigungen auf einem iPhone zu erhalten, füge diese App bitte zuerst zu deinem Home-Bildschirm hinzu:</p>
+            <ol class="text-left text-gray-600 space-y-2 mb-4">
+                <li>1. Tippe auf das <i class="fas fa-share-square"></i> **Teilen-Symbol** in der Browser-Leiste.</li>
+                <li>2. Scrolle nach unten und wähle **"Zum Home-Bildschirm"**.</li>
+                <li>3. Starte die App vom neuen Icon auf deinem Home-Bildschirm.</li>
+            </ol>
+            <button id="close-ios-modal-btn" class="w-full bg-skt-blue text-white font-semibold py-2 rounded-lg hover:bg-skt-blue-light transition-colors">Verstanden</button>
+        </div>
     </div>
 
     <script>
@@ -467,20 +495,31 @@
         // Diese Funktion registriert den Service Worker, sobald die Seite geladen ist.
         function registerServiceWorker() {
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-              .then(registration => {
-                console.log('Service Worker erfolgreich registriert:', registration);
-              })
-              .catch(error => {
-                console.log('Service Worker Registrierung fehlgeschlagen:', error);
-              });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                  .then(registration => {
+                    console.log('Service Worker erfolgreich registriert:', registration);
+                  })
+                  .catch(error => {
+                    console.log('Service Worker Registrierung fehlgeschlagen:', error);
+                  });
+            });
           }
         }
 
         // Diese Funktion fragt den Benutzer nach der Erlaubnis für Benachrichtigungen.
         async function askForNotificationPermission() {
-          if (!('serviceWorker' in navigator)) {
-              console.log('Service Worker wird nicht unterstützt.');
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+
+          // Spezielle Logik für iOS: Zeige Anleitung, wenn nicht als App installiert.
+          if (isIOS && !isInStandaloneMode) {
+              document.getElementById('ios-instructions-modal').classList.remove('hidden');
+              return;
+          }
+
+          if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+              console.log('Push-Benachrichtigungen werden nicht unterstützt.');
               return;
           }
           
@@ -489,7 +528,6 @@
           
           if (permissionResult !== 'granted') {
             console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
-            // Kein Alert mehr, da der Nutzer dies aktiv ablehnt.
             return;
           }
           
@@ -1440,6 +1478,10 @@
             document.getElementById('enable-notifications-btn').addEventListener('click', () => {
                 askForNotificationPermission();
                 document.getElementById('notification-prompt').style.display = 'none';
+            });
+
+            document.getElementById('close-ios-modal-btn').addEventListener('click', () => {
+                document.getElementById('ios-instructions-modal').classList.add('hidden');
             });
         });
 
