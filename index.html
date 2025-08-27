@@ -164,7 +164,10 @@
                     <p id="user-position" class="text-lg text-gold font-bold"></p>
                     <p class="text-lg sm:text-xl text-white mt-2">Dein persönliches Dashboard für Erfolg und Karriereplanung.</p>
                 </div>
-                <div class="relative self-start sm:self-center">
+                <div class="relative self-start sm:self-center flex items-center space-x-2">
+                    <button id="notification-bell-btn" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benachrichtigungen verwalten">
+                        <i class="fas fa-bell"></i>
+                    </button>
                     <button id="user-switch-button" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benutzer wechseln">
                         <i class="fas fa-right-from-bracket"></i>
                     </button>
@@ -173,6 +176,12 @@
         </header>
 
         <main class="flex flex-col w-full max-w-7xl mx-auto flex-grow p-6 md:p-8 space-y-12 overflow-hidden">
+            <!-- Benachrichtigungs-Banner -->
+            <div id="notification-prompt" class="hidden bg-skt-blue-light text-white p-4 rounded-lg shadow-md flex justify-between items-center mb-8">
+                <p>Möchtest du über wichtige Updates benachrichtigt werden?</p>
+                <button id="enable-notifications-btn" class="bg-white text-skt-blue font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Aktivieren</button>
+            </div>
+
             <div id="status-message" class="flex flex-col items-center justify-center text-center text-lg font-semibold text-skt-blue mt-6">
                 <div class="loader mb-4"></div><p id="status-text">Daten werden geladen...</p>
             </div>
@@ -362,6 +371,7 @@
                 document.getElementById('tier-gst-progress')
             ],
             userSwitchButton: document.getElementById('user-switch-button'),
+            notificationBellBtn: document.getElementById('notification-bell-btn'),
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
             planningViewToggle: document.getElementById('planning-view-toggle'),
             teamViewBtn: document.getElementById('team-view-btn'),
@@ -460,9 +470,6 @@
             navigator.serviceWorker.register('/service-worker.js')
               .then(registration => {
                 console.log('Service Worker erfolgreich registriert:', registration);
-                // Optional: Hier die Funktion aufrufen, um nach Push-Berechtigungen zu fragen
-                // Wir könnten hier einen Button einblenden, der diese Funktion aufruft
-                // z.B. document.getElementById('enable-notifications-btn').style.display = 'block';
               })
               .catch(error => {
                 console.log('Service Worker Registrierung fehlgeschlagen:', error);
@@ -471,7 +478,6 @@
         }
 
         // Diese Funktion fragt den Benutzer nach der Erlaubnis für Benachrichtigungen.
-        // Du kannst sie aufrufen, wann immer es passt (z.B. nach dem Login oder per Button-Klick)
         async function askForNotificationPermission() {
           if (!('serviceWorker' in navigator)) {
               console.log('Service Worker wird nicht unterstützt.');
@@ -483,16 +489,13 @@
           
           if (permissionResult !== 'granted') {
             console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
-            alert('Um Benachrichtigungen zu erhalten, musst du sie in den Browser-Einstellungen erlauben.');
+            // Kein Alert mehr, da der Nutzer dies aktiv ablehnt.
             return;
           }
           
           console.log('Berechtigung erteilt. Abonnement wird erstellt...');
           
           try {
-            // Erstelle ein Abonnement für diesen Benutzer/Browser
-            // Der VAPID Key muss von deinem Push-Dienst (Backend) generiert werden.
-            // Er dient der sicheren Kommunikation.
             // HINWEIS: Dies ist ein Platzhalter! Du musst deinen eigenen Key generieren.
             const vapidPublicKey = 'DEIN_PUBLIC_VAPID_KEY_HIER_EINFUEGEN';
             const subscription = await registration.pushManager.subscribe({
@@ -503,18 +506,14 @@
             console.log('Push-Abonnement erfolgreich:', JSON.stringify(subscription));
 
             // WICHTIG: Sende dieses 'subscription'-Objekt an dein Backend!
-            // Dein Backend (z.B. eine Serverless Function, die vom Apps Script getriggert wird)
-            // muss dieses Objekt speichern, um später Nachrichten an diesen Benutzer senden zu können.
             // await fetch('/api/save-subscription', {
             //   method: 'POST',
             //   headers: { 'Content-Type': 'application/json' },
             //   body: JSON.stringify(subscription),
             // });
-            alert('Benachrichtigungen erfolgreich aktiviert!');
 
           } catch (error) {
             console.error('Fehler beim Erstellen des Push-Abonnements:', error);
-            alert('Fehler beim Aktivieren der Benachrichtigungen.');
           }
         }
 
@@ -559,14 +558,19 @@
             }
             
             if (enteredPassword === correctPassword) {
-                // *** NEU: Benutzer im localStorage speichern ***
                 localStorage.setItem('loggedInUser', selectedUser);
 
                 document.getElementById('user-select-screen').classList.add('hidden');
                 const dashboardContent = document.getElementById('dashboard-content');
                 dashboardContent.classList.remove('hidden');
                 dashboardContent.classList.add('flex');
+                
                 fetchAndRenderDashboard(selectedUser);
+
+                // Zeige den Benachrichtigungs-Prompt an, falls noch nicht entschieden
+                if ('Notification' in window && Notification.permission === 'default') {
+                    document.getElementById('notification-prompt').classList.remove('hidden');
+                }
             } else {
                 dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
                 startBtn.disabled = false;
@@ -1353,10 +1357,11 @@
 
         // --- EVENTS ---
         dom.userSwitchButton.addEventListener('click', () => {
-            // *** NEU: Gespeicherten Benutzer beim Ausloggen entfernen ***
             localStorage.removeItem('loggedInUser');
             location.reload();
         });
+
+        dom.notificationBellBtn.addEventListener('click', askForNotificationPermission);
 
         dom.teamViewBtn.addEventListener('click', () => {
             currentPlanningView = 'team';
@@ -1431,6 +1436,11 @@
             });
 
             document.getElementById('start-dashboard-btn').addEventListener('click', startDashboard);
+            
+            document.getElementById('enable-notifications-btn').addEventListener('click', () => {
+                askForNotificationPermission();
+                document.getElementById('notification-prompt').style.display = 'none';
+            });
         });
 
     </script>
