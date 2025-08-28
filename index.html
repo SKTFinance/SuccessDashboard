@@ -1,11 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <link rel="apple-touch-icon" sizes="120x120" href="icon-120.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="icon-167.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKT Success Dashboard</title>
@@ -532,12 +527,11 @@
           }
         }
 
-        // --- NEU: Überarbeitete Funktion mit Firebase ---
+        // --- KORRIGIERTE FUNKTION MIT FIREBASE ---
         async function askForNotificationPermission() {
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
 
-            // Spezielle Logik für iOS: Zeige Anleitung, wenn nicht als App installiert.
             if (isIOS && !isInStandaloneMode) {
                 document.getElementById('ios-instructions-modal').classList.remove('hidden');
                 return;
@@ -560,12 +554,17 @@
             try {
                 // HINWEIS: Ersetze diesen Key mit deinem eigenen aus der Firebase Konsole!
                 const vapidKey = 'DEIN_FIREBASE_VAPID_KEY_HIER_EINFUEGEN';
-                const currentToken = await getToken(messaging, { vapidKey: vapidKey });
+                
+                // *** KORREKTUR: Wir übergeben die Service Worker Registrierung an getToken ***
+                const registration = await navigator.serviceWorker.ready;
+                const currentToken = await getToken(messaging, { 
+                    vapidKey: vapidKey,
+                    serviceWorkerRegistration: registration
+                });
 
                 if (currentToken) {
                     console.log('FCM Token erhalten:', currentToken);
                     
-                    // Speichere den Token in Firestore
                     const userName = localStorage.getItem('loggedInUser');
                     if (userName) {
                         const userDocRef = doc(db, "subscriptions", userName);
