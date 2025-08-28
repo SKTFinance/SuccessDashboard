@@ -38,15 +38,13 @@ messaging.onBackgroundMessage((payload) => {
 // --- Caching für Offline-Fähigkeit ---
 
 const CACHE_NAME = 'skt-dashboard-cache-v1';
-// KORRIGIERT: Pfade sind jetzt relativ zum Projektordner
+// KORRIGIERT: Nur lokale Dateien werden beim Installieren gecached, um CORS-Fehler zu vermeiden.
 const urlsToCache = [
   './', 
   './index.html',
   './manifest.json',
   './icon-192x192.png',
-  './icon-512x512.png',
-  'https://cdn.tailwindcss.com',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
+  './icon-512x512.png'
 ];
 
 self.addEventListener('install', event => {
