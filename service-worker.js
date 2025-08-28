@@ -28,7 +28,7 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/icon-192x192.png' // Stelle sicher, dass dieses Icon existiert
+    icon: './icon-192x192.png' // KORRIGIERT: Relativer Pfad
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
@@ -38,11 +38,13 @@ messaging.onBackgroundMessage((payload) => {
 // --- Caching für Offline-Fähigkeit ---
 
 const CACHE_NAME = 'skt-dashboard-cache-v1';
+// KORRIGIERT: Pfade sind jetzt relativ zum Projektordner
 const urlsToCache = [
-  '/', // Die Startseite (index.html)
-  'manifest.json',
-  'icon-192x192.png',
-  'icon-512x512.png',
+  './', 
+  './index.html',
+  './manifest.json',
+  './icon-192x192.png',
+  './icon-512x512.png',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
 ];
