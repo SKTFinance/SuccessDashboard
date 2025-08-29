@@ -25,10 +25,11 @@ messaging.onBackgroundMessage((payload) => {
     payload
   );
   
-  const notificationTitle = payload.notification.title;
+  // Wir lesen jetzt aus payload.data statt payload.notification
+  const notificationTitle = payload.data.title;
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: './icon-192x192.png' // KORRIGIERT: Relativer Pfad
+    body: payload.data.body,
+    icon: './icon-192x192.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
@@ -36,9 +37,7 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- Caching für Offline-Fähigkeit ---
-
 const CACHE_NAME = 'skt-dashboard-cache-v1';
-// KORRIGIERT: Nur lokale Dateien werden beim Installieren gecached, um CORS-Fehler zu vermeiden.
 const urlsToCache = [
   './', 
   './index.html',
