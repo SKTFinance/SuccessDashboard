@@ -197,7 +197,7 @@
             </div>
         </header>
 
-        <main class="flex flex-col w-full max-w-7xl mx-auto flex-grow p-6 md:p-8 space-y-12 overflow-hidden">
+        <main class="flex flex-col w-full max-w-7xl mx-auto flex-grow px-6 md:px-8 pt-4 md:pt-6 pb-8 space-y-8 overflow-hidden">
             <div id="notification-prompt" class="hidden bg-skt-blue-light text-white p-4 rounded-lg shadow-md flex justify-between items-center">
                 <p>Möchtest du über wichtige Updates benachrichtigt werden?</p>
                 <button id="enable-notifications-btn" class="bg-white text-skt-blue font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Aktivieren</button>
@@ -620,33 +620,33 @@
                 }
                 
                 if (enteredPassword !== correctPassword) {
-                    dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
-                    startBtn.disabled = false;
-                    startBtn.textContent = 'Dashboard laden';
-                    const passwordInput = document.getElementById('password-input');
-                    passwordInput.value = "";
-                    passwordInput.focus();
-                    return;
-                }
-                selectedUser = dropdownUser;
+                dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
+                startBtn.disabled = false;
+                startBtn.textContent = 'Dashboard laden';
+                const passwordInput = document.getElementById('password-input');
+                passwordInput.value = "";
+                passwordInput.focus();
+                return;
             }
-
-            localStorage.setItem('loggedInUser', selectedUser);
-            
-            viewHistory = [selectedUser]; // Initialisiere die Historie mit dem eingeloggten Benutzer
-
-            document.getElementById('user-select-screen').classList.add('hidden');
-            const dashboardContent = document.getElementById('dashboard-content');
-            dashboardContent.classList.remove('hidden');
-            dashboardContent.classList.add('flex');
-            
-            fetchAndRenderDashboard(selectedUser);
-            updateNotificationPromptVisibility();
-            updateBackButtonVisibility();
+            selectedUser = dropdownUser;
         }
 
-        async function fetchUserData(userName) {
-            const query = `select B, C, D, E, F, G, H, I, J where A = '${userName.trim()}'`;
+        localStorage.setItem('loggedInUser', selectedUser);
+        
+        viewHistory = [selectedUser]; // Initialisiere die Historie mit dem eingeloggten Benutzer
+
+        document.getElementById('user-select-screen').classList.add('hidden');
+        const dashboardContent = document.getElementById('dashboard-content');
+        dashboardContent.classList.remove('hidden');
+        dashboardContent.classList.add('flex');
+        
+        fetchAndRenderDashboard(selectedUser);
+        updateNotificationPromptVisibility();
+        updateBackButtonVisibility();
+    }
+
+    async function fetchUserData(userName) {
+        const query = `select B, C, D, E, F, G, H, I, J where A = '${userName.trim()}'`;
             const data = await fetchSheetQuery(sheetDataName, query);
             if (data && data.table.rows.length > 0 && data.table.rows[0].c) {
                 const row = data.table.rows[0].c;
@@ -1497,33 +1497,35 @@
 
         document.addEventListener('touchstart', (e) => {
             touchStartX = e.touches[0].clientX;
-            if (window.scrollY === 0 && !isRefreshing) {
-                touchStartY = e.touches[0].clientY;
-            } else {
-                touchStartY = 0;
-            }
+            touchStartY = e.touches[0].clientY;
         }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
-            if (isRefreshing || touchStartY === 0) return;
+            if (isRefreshing) return;
             const pullDistance = e.touches[0].clientY - touchStartY;
-            const indicator = document.getElementById('refresh-indicator');
-            const icon = indicator.querySelector('i');
-            if (pullDistance > 10) {
+            
+            // Show visual feedback for pull-to-refresh ONLY if at the top and pulling down
+            if (window.scrollY === 0 && pullDistance > 0) {
+                const indicator = document.getElementById('refresh-indicator');
+                const icon = indicator.querySelector('i');
                 indicator.style.opacity = '1';
-                icon.style.transform = `rotate(${pullDistance * 2}deg)`;
+                icon.style.transform = `rotate(${Math.min(pullDistance * 2, 360)}deg)`;
             }
         }, { passive: true });
 
 
         document.addEventListener('touchend', async (e) => {
-            // Pull-to-Refresh Logik
-            if (!isRefreshing && touchStartY !== 0) {
-                const pullDistance = e.changedTouches[0].clientY - touchStartY;
-                const indicator = document.getElementById('refresh-indicator');
-                const icon = indicator.querySelector('i');
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+            
+            const swipeDistanceX = touchEndX - touchStartX;
+            const swipeDistanceY = touchEndY - touchStartY;
+            const indicator = document.getElementById('refresh-indicator');
+            const icon = indicator.querySelector('i');
 
-                if (pullDistance > 100) { // Threshold to trigger refresh
+            // Check for Pull-to-Refresh first (more vertical than horizontal)
+            if (window.scrollY === 0 && swipeDistanceY > 100 && Math.abs(swipeDistanceX) < Math.abs(swipeDistanceY) / 2) {
+                if (!isRefreshing) {
                     isRefreshing = true;
                     icon.classList.add('animate-spin');
                     
@@ -1538,21 +1540,21 @@
                         icon.style.transform = 'rotate(0deg)';
                         isRefreshing = false;
                     }, 500);
-                } else {
-                    indicator.style.opacity = '0';
-                    icon.style.transform = 'rotate(0deg)';
                 }
-            }
-            
-            // Wischgeste für Zurück
-            const touchEndX = e.changedTouches[0].clientX;
-            const swipeDistance = touchEndX - touchStartX;
-            if(swipeDistance > 100 && Math.abs(e.changedTouches[0].clientY - touchStartY) < 75) { // Ensure it's more horizontal than vertical
+            } 
+            // If not a refresh, check for Swipe-to-Go-Back (more horizontal than vertical)
+            else if (swipeDistanceX > 100 && Math.abs(swipeDistanceY) < Math.abs(swipeDistanceX) / 2) {
                 goBack();
+            } 
+            // Otherwise, just hide the pull-to-refresh indicator
+            else {
+                indicator.style.opacity = '0';
+                icon.style.transform = 'rotate(0deg)';
             }
 
-            touchStartY = 0;
+            // Reset start points
             touchStartX = 0;
+            touchStartY = 0;
         }, { passive: true });
 
 
