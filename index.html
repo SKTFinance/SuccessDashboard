@@ -143,7 +143,7 @@
     </style>
 </head>
 <body class="flex flex-col min-h-screen text-skt-blue">
-    <!-- NEU: Pull-to-Refresh Indikator -->
+    <!-- Pull-to-Refresh Indikator -->
     <div id="refresh-indicator" class="fixed top-0 left-0 right-0 flex justify-center pt-3 opacity-0 transition-opacity duration-300 z-40">
         <div class="bg-white rounded-full shadow-lg h-10 w-10 flex items-center justify-center">
             <i class="fas fa-sync-alt text-skt-blue transition-transform duration-200"></i>
@@ -185,8 +185,11 @@
                     <p id="user-position" class="text-lg text-gold font-bold"></p>
                     <p class="text-lg sm:text-xl text-white mt-2">Dein persönliches Dashboard für Erfolg und Karriereplanung.</p>
                 </div>
-                <!-- ENTFERNT: Glockensymbol war hier -->
                 <div class="relative self-start sm:self-center flex items-center space-x-2">
+                    <!-- HINZUGEFÜGT: Zurück-Knopf -->
+                    <button id="back-button" class="hidden bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Zurück">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
                     <button id="user-switch-button" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benutzer wechseln">
                         <i class="fas fa-right-from-bracket"></i>
                     </button>
@@ -195,7 +198,6 @@
         </header>
 
         <main class="flex flex-col w-full max-w-7xl mx-auto flex-grow p-6 md:p-8 space-y-12 overflow-hidden">
-            <!-- Benachrichtigungs-Banner (Logik und Layout angepasst) -->
             <div id="notification-prompt" class="hidden bg-skt-blue-light text-white p-4 rounded-lg shadow-md flex justify-between items-center">
                 <p>Möchtest du über wichtige Updates benachrichtigt werden?</p>
                 <button id="enable-notifications-btn" class="bg-white text-skt-blue font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Aktivieren</button>
@@ -218,15 +220,12 @@
                     <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
                         <div class="flex-grow md:w-1/2 relative w-full h-auto max-w-sm max-h-sm">
                             <svg class="progress-circle-monthly w-full h-full" viewBox="0 0 100 100">
-                                <!-- Outer Ring (Actual Progress) -->
                                 <circle class="bg-circle" cx="50" cy="50" r="45"></circle>
                                 <circle class="progress-arc-eh" cx="50" cy="50" r="45" id="progress-circle-eh"></circle>
                                 
-                                <!-- Inner Ring (Expected/Soll Progress) -->
                                 <circle class="prognosis-bg-circle" cx="50" cy="50" r="35"></circle>
                                 <circle class="prognosis-arc-eh" cx="50" cy="50" r="35" id="prognosis-circle-eh"></circle>
 
-                                <!-- Segment dividers will be injected here by JS -->
                                 <g id="segment-dividers-eh"></g>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center flex-col text-center">
@@ -373,6 +372,7 @@
         let currentTeamViewMode = 'list';
         let cachedActiveMembers = [];
         let cachedCycleData = {};
+        let viewHistory = []; // HINZUGEFÜGT: Stack für die Ansicht-Historie
 
 
         // --- DOM ELEMENTS
@@ -423,6 +423,7 @@
                 document.getElementById('tier-gst-progress')
             ],
             userSwitchButton: document.getElementById('user-switch-button'),
+            backButton: document.getElementById('back-button'), // HINZUGEFÜGT
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
             planningViewToggle: document.getElementById('planning-view-toggle'),
             teamViewBtn: document.getElementById('team-view-btn'),
@@ -589,51 +590,59 @@
 
 
         // --- DASHBOARD FUNKTIONEN ---
-        async function startDashboard(){
-            const selectedUser = dom.userDropdownSelect.value;
-            const enteredPassword = document.getElementById('password-input').value;
-
+        async function startDashboard(user) {
+            let selectedUser = user;
             if (!selectedUser) {
-                dom.userSelectError.textContent = "Bitte zuerst einen Benutzer auswählen.";
-                return;
-            }
-            if (!enteredPassword) {
-                dom.userSelectError.textContent = "Bitte gib dein Passwort ein.";
-                return;
-            }
-            dom.userSelectError.textContent = "";
-
-            const startBtn = document.getElementById('start-dashboard-btn');
-            startBtn.disabled = true;
-            startBtn.textContent = 'Wird geprüft...';
-
-            const correctPassword = await fetchUserPassword(selectedUser);
-            
-            if (correctPassword === null) {
-                dom.userSelectError.textContent = "Benutzer nicht gefunden oder kein Passwort hinterlegt.";
-                startBtn.disabled = false;
-                startBtn.textContent = 'Dashboard laden';
-                return;
-            }
-            
-            if (enteredPassword === correctPassword) {
-                localStorage.setItem('loggedInUser', selectedUser);
-
-                document.getElementById('user-select-screen').classList.add('hidden');
-                const dashboardContent = document.getElementById('dashboard-content');
-                dashboardContent.classList.remove('hidden');
-                dashboardContent.classList.add('flex');
+                const dropdownUser = dom.userDropdownSelect.value;
+                const enteredPassword = document.getElementById('password-input').value;
                 
-                fetchAndRenderDashboard(selectedUser);
-                updateNotificationPromptVisibility();
-            } else {
-                dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
-                startBtn.disabled = false;
-                startBtn.textContent = 'Dashboard laden';
-                const passwordInput = document.getElementById('password-input');
-                passwordInput.value = "";
-                passwordInput.focus();
+                if (!dropdownUser) {
+                    dom.userSelectError.textContent = "Bitte zuerst einen Benutzer auswählen.";
+                    return;
+                }
+                if (!enteredPassword) {
+                    dom.userSelectError.textContent = "Bitte gib dein Passwort ein.";
+                    return;
+                }
+                dom.userSelectError.textContent = "";
+
+                const startBtn = document.getElementById('start-dashboard-btn');
+                startBtn.disabled = true;
+                startBtn.textContent = 'Wird geprüft...';
+
+                const correctPassword = await fetchUserPassword(dropdownUser);
+                
+                if (correctPassword === null) {
+                    dom.userSelectError.textContent = "Benutzer nicht gefunden oder kein Passwort hinterlegt.";
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Dashboard laden';
+                    return;
+                }
+                
+                if (enteredPassword !== correctPassword) {
+                    dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
+                    startBtn.disabled = false;
+                    startBtn.textContent = 'Dashboard laden';
+                    const passwordInput = document.getElementById('password-input');
+                    passwordInput.value = "";
+                    passwordInput.focus();
+                    return;
+                }
+                selectedUser = dropdownUser;
             }
+
+            localStorage.setItem('loggedInUser', selectedUser);
+            
+            viewHistory = [selectedUser]; // Initialisiere die Historie mit dem eingeloggten Benutzer
+
+            document.getElementById('user-select-screen').classList.add('hidden');
+            const dashboardContent = document.getElementById('dashboard-content');
+            dashboardContent.classList.remove('hidden');
+            dashboardContent.classList.add('flex');
+            
+            fetchAndRenderDashboard(selectedUser);
+            updateNotificationPromptVisibility();
+            updateBackButtonVisibility();
         }
 
         async function fetchUserData(userName) {
@@ -1129,7 +1138,9 @@
                     `;
                     passiveCard.querySelector('.switch-view-btn').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        fetchAndRenderDashboard(e.currentTarget.dataset.username);
+                        const newuser = e.currentTarget.dataset.username;
+                        viewHistory.push(newuser);
+                        fetchAndRenderDashboard(newuser);
                     });
                     container.appendChild(passiveCard);
                 });
@@ -1252,7 +1263,12 @@
             card.appendChild(details);
             
             summary.addEventListener('click', (e) => { if (!e.target.closest('.switch-view-btn')) { details.classList.toggle('open'); summary.classList.toggle('open'); } });
-            summary.querySelector('.switch-view-btn').addEventListener('click', (e) => { e.stopPropagation(); fetchAndRenderDashboard(e.currentTarget.dataset.username); });
+            summary.querySelector('.switch-view-btn').addEventListener('click', (e) => { 
+                e.stopPropagation();
+                const newuser = e.currentTarget.dataset.username;
+                viewHistory.push(newuser);
+                fetchAndRenderDashboard(newuser);
+            });
             return card;
         }
 
@@ -1336,7 +1352,12 @@
             card.appendChild(details);
             
             summary.addEventListener('click', (e) => { if (!e.target.closest('.switch-view-btn')) { details.classList.toggle('open'); summary.classList.toggle('open'); } });
-            summary.querySelector('.switch-view-btn').addEventListener('click', (e) => { e.stopPropagation(); fetchAndRenderDashboard(e.currentTarget.dataset.username); });
+            summary.querySelector('.switch-view-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newuser = e.currentTarget.dataset.username;
+                viewHistory.push(newuser);
+                fetchAndRenderDashboard(newuser);
+            });
             return card;
         }
 
@@ -1381,8 +1402,8 @@
 
             setStatus('');
             dom.dashboardSections.classList.remove('hidden');
-            // Timeout to ensure elements are rendered before fade-in
             setTimeout(() => dom.dashboardSections.classList.remove('opacity-0'), 50);
+            updateBackButtonVisibility();
         }
 
         async function getAllUsers() {
@@ -1411,12 +1432,32 @@
                 dom.userDropdownSelect.appendChild(opt);
             });
         }
+        
+        // HINZUGEFÜGT: Logik für den Zurück-Button und die Navigation
+        function updateBackButtonVisibility() {
+            if (viewHistory.length > 1) {
+                dom.backButton.classList.remove('hidden');
+            } else {
+                dom.backButton.classList.add('hidden');
+            }
+        }
+
+        function goBack() {
+            if (viewHistory.length > 1) {
+                viewHistory.pop();
+                const previousUser = viewHistory[viewHistory.length - 1];
+                fetchAndRenderDashboard(previousUser);
+            }
+        }
 
         // --- EVENTS ---
         dom.userSwitchButton.addEventListener('click', () => {
             localStorage.removeItem('loggedInUser');
+            viewHistory = [];
             location.reload();
         });
+        
+        dom.backButton.addEventListener('click', goBack);
 
         dom.teamViewBtn.addEventListener('click', () => {
             currentPlanningView = 'team';
@@ -1450,11 +1491,12 @@
             renderTeamMemberCards();
         });
         
-        // --- NEU: PULL-TO-REFRESH LOGIC ---
         let touchStartY = 0;
+        let touchStartX = 0;
         let isRefreshing = false;
 
         document.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
             if (window.scrollY === 0 && !isRefreshing) {
                 touchStartY = e.touches[0].clientY;
             } else {
@@ -1475,32 +1517,42 @@
 
 
         document.addEventListener('touchend', async (e) => {
-            if (isRefreshing || touchStartY === 0) return;
+            // Pull-to-Refresh Logik
+            if (!isRefreshing && touchStartY !== 0) {
+                const pullDistance = e.changedTouches[0].clientY - touchStartY;
+                const indicator = document.getElementById('refresh-indicator');
+                const icon = indicator.querySelector('i');
 
-            const pullDistance = e.changedTouches[0].clientY - touchStartY;
-            const indicator = document.getElementById('refresh-indicator');
-            const icon = indicator.querySelector('i');
+                if (pullDistance > 100) { // Threshold to trigger refresh
+                    isRefreshing = true;
+                    icon.classList.add('animate-spin');
+                    
+                    const user = viewHistory[viewHistory.length - 1];
+                    if (user) {
+                        await fetchAndRenderDashboard(user);
+                    }
 
-            if (pullDistance > 100) { // Threshold to trigger refresh
-                isRefreshing = true;
-                icon.classList.add('animate-spin');
-                
-                const user = localStorage.getItem('loggedInUser');
-                if (user) {
-                    await fetchAndRenderDashboard(user);
-                }
-
-                setTimeout(() => {
+                    setTimeout(() => {
+                        indicator.style.opacity = '0';
+                        icon.classList.remove('animate-spin');
+                        icon.style.transform = 'rotate(0deg)';
+                        isRefreshing = false;
+                    }, 500);
+                } else {
                     indicator.style.opacity = '0';
-                    icon.classList.remove('animate-spin');
                     icon.style.transform = 'rotate(0deg)';
-                    isRefreshing = false;
-                }, 500);
-            } else {
-                indicator.style.opacity = '0';
-                icon.style.transform = 'rotate(0deg)';
+                }
             }
+            
+            // Wischgeste für Zurück
+            const touchEndX = e.changedTouches[0].clientX;
+            const swipeDistance = touchEndX - touchStartX;
+            if(swipeDistance > 100 && Math.abs(e.changedTouches[0].clientY - touchStartY) < 75) { // Ensure it's more horizontal than vertical
+                goBack();
+            }
+
             touchStartY = 0;
+            touchStartX = 0;
         }, { passive: true });
 
 
@@ -1510,12 +1562,7 @@
 
             const savedUser = localStorage.getItem('loggedInUser');
             if (savedUser) {
-                document.getElementById('user-select-screen').style.display = 'none';
-                const dashboardContent = document.getElementById('dashboard-content');
-                dashboardContent.classList.remove('hidden');
-                dashboardContent.classList.add('flex');
-                fetchAndRenderDashboard(savedUser);
-                updateNotificationPromptVisibility();
+                startDashboard(savedUser);
             } else {
                 document.getElementById('user-select-screen').classList.remove('hidden');
                 document.getElementById('user-select-screen').classList.add('flex');
@@ -1543,7 +1590,7 @@
                 }
             });
 
-            document.getElementById('start-dashboard-btn').addEventListener('click', startDashboard);
+            document.getElementById('start-dashboard-btn').addEventListener('click', () => startDashboard());
             
             document.getElementById('enable-notifications-btn').addEventListener('click', askForNotificationPermission);
 
