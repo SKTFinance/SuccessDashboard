@@ -143,8 +143,15 @@
     </style>
 </head>
 <body class="flex flex-col min-h-screen text-skt-blue">
+    <!-- NEU: Pull-to-Refresh Indikator -->
+    <div id="refresh-indicator" class="fixed top-0 left-0 right-0 flex justify-center pt-3 opacity-0 transition-opacity duration-300 z-40">
+        <div class="bg-white rounded-full shadow-lg h-10 w-10 flex items-center justify-center">
+            <i class="fas fa-sync-alt text-skt-blue transition-transform duration-200"></i>
+        </div>
+    </div>
+
     <!-- Auswahlbereich für Benutzer -->
-    <div id="user-select-screen" class="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 pt-16 sm:pt-24">
+    <div id="user-select-screen" class="hidden flex-col items-center justify-start min-h-screen bg-gray-100 p-4 pt-16 sm:pt-24">
         <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center transform transition-transform duration-300 hover:scale-105">
             <div class="mb-6">
                 <h1 class="text-3xl font-extrabold text-skt-blue leading-tight">Willkommen zurück!</h1>
@@ -171,17 +178,15 @@
 
     <!-- Dashboard-Container -->
     <div id="dashboard-content" class="hidden flex-col min-h-screen">
-        <header class="w-full p-8 md:p-12 bg-skt-blue relative rounded-b-3xl">
+        <header class="w-full p-8 md:p-12 bg-skt-blue relative rounded-b-3xl z-50">
             <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-x-8 gap-y-4 relative">
                 <div class="flex flex-col">
                     <h1 class="text-4xl sm:text-5xl font-bold font-times-new-roman text-white mb-2" id="welcome-header">Willkommen,</h1>
                     <p id="user-position" class="text-lg text-gold font-bold"></p>
                     <p class="text-lg sm:text-xl text-white mt-2">Dein persönliches Dashboard für Erfolg und Karriereplanung.</p>
                 </div>
+                <!-- ENTFERNT: Glockensymbol war hier -->
                 <div class="relative self-start sm:self-center flex items-center space-x-2">
-                    <button id="notification-bell-btn" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benachrichtigungen verwalten">
-                        <i class="fas fa-bell"></i>
-                    </button>
                     <button id="user-switch-button" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benutzer wechseln">
                         <i class="fas fa-right-from-bracket"></i>
                     </button>
@@ -190,8 +195,8 @@
         </header>
 
         <main class="flex flex-col w-full max-w-7xl mx-auto flex-grow p-6 md:p-8 space-y-12 overflow-hidden">
-            <!-- Benachrichtigungs-Banner -->
-            <div id="notification-prompt" class="hidden bg-skt-blue-light text-white p-4 rounded-lg shadow-md flex justify-between items-center mb-8">
+            <!-- Benachrichtigungs-Banner (Logik und Layout angepasst) -->
+            <div id="notification-prompt" class="hidden bg-skt-blue-light text-white p-4 rounded-lg shadow-md flex justify-between items-center">
                 <p>Möchtest du über wichtige Updates benachrichtigt werden?</p>
                 <button id="enable-notifications-btn" class="bg-white text-skt-blue font-bold py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors">Aktivieren</button>
             </div>
@@ -326,13 +331,12 @@
     </div>
 
     <script type="module">
-        // --- NEU: Firebase SDKs importieren ---
+        // --- Firebase SDKs importieren ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
         import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging.js";
 
-        // --- KONFIGURATION
-        // --- NEU: Deine Firebase Konfiguration ---
+        // --- KONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyCRb2nZrC9U78fFxuVZu7NF9JxRxyZw864",
             authDomain: "skt-dashboard-c7374.firebaseapp.com",
@@ -342,7 +346,7 @@
             appId: "1:936899917792:web:6470917c8ae8e410ee5d85"
         };
 
-        // --- NEU: Firebase initialisieren ---
+        // --- Firebase initialisieren ---
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const messaging = getMessaging(app);
@@ -419,7 +423,6 @@
                 document.getElementById('tier-gst-progress')
             ],
             userSwitchButton: document.getElementById('user-switch-button'),
-            notificationBellBtn: document.getElementById('notification-bell-btn'),
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
             planningViewToggle: document.getElementById('planning-view-toggle'),
             teamViewBtn: document.getElementById('team-view-btn'),
@@ -511,24 +514,29 @@
         }
 
         // --- PWA & SERVICE WORKER REGISTRIERUNG ---
-
-        // Diese Funktion registriert den Service Worker, sobald die Seite geladen ist.
         function registerServiceWorker() {
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // KORRIGIERT: Relativer Pfad für GitHub Pages
-                navigator.serviceWorker.register('./service-worker.js')
-                  .then(registration => {
-                    console.log('Service Worker erfolgreich registriert:', registration);
-                  })
-                  .catch(error => {
-                    console.log('Service Worker Registrierung fehlgeschlagen:', error);
-                  });
+              navigator.serviceWorker.register('./service-worker.js')
+                .then(registration => {
+                  console.log('Service Worker erfolgreich registriert:', registration);
+                })
+                .catch(error => {
+                  console.log('Service Worker Registrierung fehlgeschlagen:', error);
+                });
             });
           }
         }
 
-        // --- KORRIGIERTE FUNKTION MIT FIREBASE ---
+        function updateNotificationPromptVisibility() {
+            const prompt = document.getElementById('notification-prompt');
+            if ('Notification' in window && Notification.permission !== 'granted') {
+                prompt.classList.remove('hidden');
+            } else {
+                prompt.classList.add('hidden');
+            }
+        }
+
         async function askForNotificationPermission() {
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
             const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
@@ -546,40 +554,36 @@
             console.log('Frage nach Berechtigung...');
             const permission = await Notification.requestPermission();
 
-            if (permission !== 'granted') {
-                console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
-                return;
-            }
+            if (permission === 'granted') {
+                console.log('Berechtigung erteilt. Hole Token...');
+                document.getElementById('notification-prompt').classList.add('hidden');
+                try {
+                    const vapidKey = 'BDCibiyhVTM6BhoU79r99pzsqTN9vIRedITekvHlbznK8aZgnKLpSDvQyOTQo_vAOkS__LIEAgS0m3r2crCI3Xo';
+                    const registration = await navigator.serviceWorker.ready;
+                    const currentToken = await getToken(messaging, { 
+                        vapidKey: vapidKey,
+                        serviceWorkerRegistration: registration
+                    });
 
-            console.log('Berechtigung erteilt. Hole Token...');
-            try {
-                // HINWEIS: Ersetze diesen Key mit deinem eigenen aus der Firebase Konsole!
-                const vapidKey = 'BDCibiyhVTM6BhoU79r99pzsqTN9vIRedITekvHlbznK8aZgnKLpSDvQyOTQo_vAOkS__LIEAgS0m3r2crCI3Xo';
-                
-                // *** KORREKTUR: Wir übergeben die Service Worker Registrierung an getToken ***
-                const registration = await navigator.serviceWorker.ready;
-                const currentToken = await getToken(messaging, { 
-                    vapidKey: vapidKey,
-                    serviceWorkerRegistration: registration
-                });
-
-                if (currentToken) {
-                    console.log('FCM Token erhalten:', currentToken);
-                    
-                    const userName = localStorage.getItem('loggedInUser');
-                    if (userName) {
-                        const userDocRef = doc(db, "subscriptions", userName);
-                        await setDoc(userDocRef, { token: currentToken }, { merge: true });
-                        console.log(`Token für ${userName} in Firestore gespeichert.`);
-                        alert('Benachrichtigungen erfolgreich aktiviert!');
+                    if (currentToken) {
+                        console.log('FCM Token erhalten:', currentToken);
+                        const userName = localStorage.getItem('loggedInUser');
+                        if (userName) {
+                            const userDocRef = doc(db, "subscriptions", userName);
+                            await setDoc(userDocRef, { token: currentToken }, { merge: true });
+                            console.log(`Token für ${userName} in Firestore gespeichert.`);
+                            alert('Benachrichtigungen erfolgreich aktiviert!');
+                        } else {
+                            console.error('Kein eingeloggter Benutzer gefunden, um Token zu speichern.');
+                        }
                     } else {
-                        console.error('Kein eingeloggter Benutzer gefunden, um Token zu speichern.');
+                        console.log('Kein Registrierungs-Token verfügbar.');
                     }
-                } else {
-                    console.log('Kein Registrierungs-Token verfügbar. Fordere Berechtigung an.');
+                } catch (err) {
+                    console.error('Fehler beim Abrufen des Tokens:', err);
                 }
-            } catch (err) {
-                console.error('Fehler beim Abrufen des Tokens:', err);
+            } else {
+                console.log('Berechtigung für Benachrichtigungen wurde nicht erteilt.');
             }
         }
 
@@ -621,11 +625,7 @@
                 dashboardContent.classList.add('flex');
                 
                 fetchAndRenderDashboard(selectedUser);
-
-                // Zeige den Benachrichtigungs-Prompt an, falls noch nicht entschieden
-                if ('Notification' in window && Notification.permission === 'default') {
-                    document.getElementById('notification-prompt').classList.remove('hidden');
-                }
+                updateNotificationPromptVisibility();
             } else {
                 dom.userSelectError.textContent = "Falsches Passwort. Bitte erneut versuchen.";
                 startBtn.disabled = false;
@@ -1380,7 +1380,9 @@
             }
 
             setStatus('');
-            dom.dashboardSections.classList.remove('hidden', 'opacity-0');
+            dom.dashboardSections.classList.remove('hidden');
+            // Timeout to ensure elements are rendered before fade-in
+            setTimeout(() => dom.dashboardSections.classList.remove('opacity-0'), 50);
         }
 
         async function getAllUsers() {
@@ -1416,8 +1418,6 @@
             location.reload();
         });
 
-        dom.notificationBellBtn.addEventListener('click', askForNotificationPermission);
-
         dom.teamViewBtn.addEventListener('click', () => {
             currentPlanningView = 'team';
             dom.teamViewBtn.classList.add('active');
@@ -1449,23 +1449,76 @@
             dom.gridViewBtn.classList.remove('active');
             renderTeamMemberCards();
         });
+        
+        // --- NEU: PULL-TO-REFRESH LOGIC ---
+        let touchStartY = 0;
+        let isRefreshing = false;
+
+        document.addEventListener('touchstart', (e) => {
+            if (window.scrollY === 0 && !isRefreshing) {
+                touchStartY = e.touches[0].clientY;
+            } else {
+                touchStartY = 0;
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isRefreshing || touchStartY === 0) return;
+            const pullDistance = e.touches[0].clientY - touchStartY;
+            const indicator = document.getElementById('refresh-indicator');
+            const icon = indicator.querySelector('i');
+            if (pullDistance > 10) {
+                indicator.style.opacity = '1';
+                icon.style.transform = `rotate(${pullDistance * 2}deg)`;
+            }
+        }, { passive: true });
+
+
+        document.addEventListener('touchend', async (e) => {
+            if (isRefreshing || touchStartY === 0) return;
+
+            const pullDistance = e.changedTouches[0].clientY - touchStartY;
+            const indicator = document.getElementById('refresh-indicator');
+            const icon = indicator.querySelector('i');
+
+            if (pullDistance > 100) { // Threshold to trigger refresh
+                isRefreshing = true;
+                icon.classList.add('animate-spin');
+                
+                const user = localStorage.getItem('loggedInUser');
+                if (user) {
+                    await fetchAndRenderDashboard(user);
+                }
+
+                setTimeout(() => {
+                    indicator.style.opacity = '0';
+                    icon.classList.remove('animate-spin');
+                    icon.style.transform = 'rotate(0deg)';
+                    isRefreshing = false;
+                }, 500);
+            } else {
+                indicator.style.opacity = '0';
+                icon.style.transform = 'rotate(0deg)';
+            }
+            touchStartY = 0;
+        }, { passive: true });
+
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Registriere den Service Worker
             registerServiceWorker();
 
-            // PWA-Logik zum automatischen Einloggen
             const savedUser = localStorage.getItem('loggedInUser');
             if (savedUser) {
-                // Wenn ein Benutzer gespeichert ist, überspringe den Login
                 document.getElementById('user-select-screen').style.display = 'none';
                 const dashboardContent = document.getElementById('dashboard-content');
                 dashboardContent.classList.remove('hidden');
                 dashboardContent.classList.add('flex');
                 fetchAndRenderDashboard(savedUser);
+                updateNotificationPromptVisibility();
             } else {
-                // Ansonsten zeige den normalen Login-Screen
+                document.getElementById('user-select-screen').classList.remove('hidden');
+                document.getElementById('user-select-screen').classList.add('flex');
                 populateUserDropdown();
             }
 
@@ -1492,10 +1545,7 @@
 
             document.getElementById('start-dashboard-btn').addEventListener('click', startDashboard);
             
-            document.getElementById('enable-notifications-btn').addEventListener('click', () => {
-                askForNotificationPermission();
-                document.getElementById('notification-prompt').style.display = 'none';
-            });
+            document.getElementById('enable-notifications-btn').addEventListener('click', askForNotificationPermission);
 
             document.getElementById('close-ios-modal-btn').addEventListener('click', () => {
                 document.getElementById('ios-instructions-modal').classList.add('hidden');
