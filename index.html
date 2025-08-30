@@ -238,7 +238,7 @@
         .timeline-item.completed .timeline-content {
             background-color: #f0fdf4;
         }
-        .timeline-item.locked .timeline-content {
+        .timeline-item-minor.locked .timeline-content {
              filter: blur(4px);
              pointer-events: none;
              user-select: none;
@@ -269,7 +269,14 @@
             margin-right: -1.5rem;
         }
         .timeline-item.completed .timeline-icon-inline { background-color: var(--color-accent-green); }
-        .timeline-item.due.seminar .timeline-icon-inline,
+
+        /* NEUE STILE FÜR SPEZIFISCHE ERLEDIGTE AUFGABEN */
+        .timeline-item.completed.gespraech .timeline-icon-inline { background-color: var(--color-accent-purple); }
+        .timeline-item.completed.gespraech .timeline-content { background-color: #f3e8f7; }
+        .timeline-item.completed.meilenstein .timeline-icon-inline { background-color: var(--color-accent-gold); }
+        .timeline-item.completed.meilenstein .timeline-content { background-color: #fef9e7; }
+        
+        .timeline-item.due.seminar .timeline-icon-inline { background-color: var(--color-accent-green); }
         .timeline-item.due.meilenstein .timeline-icon-inline { background-color: var(--color-accent-gold); }
         .timeline-item.due.gespraech .timeline-icon-inline { background-color: var(--color-accent-purple); }
 
@@ -1691,6 +1698,7 @@
                 
                 let statusClass = '';
                 let iconClass = 'fa-question';
+                let typeClass = '';
                 let isLocked = false;
                 const isMajor = titleLower.includes('informationsabend') ||
                                 titleLower.includes('seminar karrierestart') ||
@@ -1708,14 +1716,23 @@
                 
                 const type = step.type.toLowerCase().trim();
                 switch(type) {
-                    case 'seminar': iconClass = 'fa-book'; break;
-                    case 'persönliches gespräch': iconClass = 'fa-users'; break;
-                    case 'meilenstein': iconClass = 'fa-star'; break;
+                    case 'seminar': 
+                        iconClass = 'fa-book'; 
+                        typeClass = 'seminar';
+                        break;
+                    case 'persönliches gespräch': 
+                        iconClass = 'fa-users'; 
+                        typeClass = 'gespraech';
+                        break;
+                    case 'meilenstein': 
+                        iconClass = 'fa-star'; 
+                        typeClass = 'meilenstein';
+                        break;
                 }
                 
                 if (isLocked) iconClass = 'fa-lock';
 
-                stepEl.className = `timeline-item ${statusClass} ${isMajor ? 'timeline-item-major' : 'timeline-item-minor'}`;
+                stepEl.className = `timeline-item ${statusClass} ${typeClass} ${isMajor ? 'timeline-item-major' : 'timeline-item-minor'}`;
                 stepEl.style.animationDelay = `${index * 0.1}s`;
                 
                 const formattedDate = step.dueDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });

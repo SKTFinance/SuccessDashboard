@@ -37,32 +37,66 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- Caching für Offline-Fähigkeit ---
-const CACHE_NAME = 'skt-dashboard-cache-v1.1';
+
+// ===================================================================================
+// HIER IST DIE WICHTIGSTE STELLE FÜR UPDATES
+// Ändere diese Versionsnummer (z.B. auf 'v1.2'), wenn du die App aktualisierst.
+const CACHE_NAME = 'skt-dashboard-cache-v1.1.1'; 
+// ===================================================================================
+
 const urlsToCache = [
   './', 
   './index.html',
   './manifest.json',
   './icon-192x192.png',
-  './icon-512x512.png'
+  './icon-512x512.png',
+  'https://cdn.tailwindcss.com',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css'
 ];
 
+// 1. INSTALL: Wird ausgeführt, wenn ein neuer Service Worker installiert wird.
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('Cache geöffnet und Dateien werden zwischengespeichert.');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
+// 2. ACTIVATE: Wird ausgeführt, nachdem der neue Service Worker installiert wurde.
+// Hier werden alte, nicht mehr benötigte Caches gelöscht.
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          // Wenn der Name eines Caches nicht mit dem aktuellen CACHE_NAME übereinstimmt, wird er gelöscht.
+          if (cacheName !== CACHE_NAME) {
+            console.log('Alter Cache wird gelöscht:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Sorgt dafür, dass der neue Service Worker sofort die Kontrolle über die Seite übernimmt.
+  return self.clients.claim();
+});
+
+
+// 3. FETCH: Wird bei jeder Anfrage (z.B. nach Bildern, CSS, HTML) von der Seite ausgeführt.
 self.addEventListener('fetch', event => {
   event.respondWith(
+    // Versuche, die Anfrage aus dem Cache zu beantworten.
     caches.match(event.request)
       .then(response => {
+        // Wenn die Datei im Cache gefunden wird, liefere sie von dort.
         if (response) {
           return response;
         }
+        // Wenn nicht, lade sie aus dem Netzwerk.
         return fetch(event.request);
       })
   );
