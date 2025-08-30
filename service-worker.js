@@ -37,7 +37,7 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- Caching für Offline-Fähigkeit ---
-const CACHE_NAME = 'skt-dashboard-cache-v0.8.2';
+const CACHE_NAME = 'skt-dashboard-cache-v0.8.3';
 const urlsToCache = [
   './', 
   './index.html',

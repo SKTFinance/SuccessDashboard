@@ -404,8 +404,8 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                         <h2 id="monthly-planning-title" class="text-2xl font-semibold text-skt-blue">Monatsplanung</h2>
                         <div id="planning-view-toggle" class="view-toggle hidden flex w-full sm:w-auto space-x-2">
-                            <button id="struktur-view-btn" class="active flex-1">Struktur</button>
-                            <button id="team-view-btn" class="flex-1">Team</button>
+                            <button id="struktur-view-btn" class="flex-1">Struktur</button>
+                            <button id="team-view-btn" class="active flex-1">Team</button>
                             <button id="personal-view-btn" class="flex-1">Persönlich</button>
                         </div>
                     </div>
@@ -641,8 +641,6 @@
             teamCount: document.getElementById('team-count'),
             teamMembersContainer: document.getElementById('team-members-container'),
             passiveMembersSection: document.getElementById('passive-members-section'),
-            agenciesSection: document.getElementById('agencies-section'),
-            agenciesContainer: document.getElementById('agencies-container'),
             leadershipViewTitle: document.getElementById('leadership-view-title'), 
             leadershipViewCount: document.getElementById('leadership-view-count'),
             teamViewModeToggle: document.getElementById('team-view-mode-toggle'),
@@ -1880,21 +1878,33 @@
             if (!isTrainee) {
                 dom.planningViewToggle.classList.remove('hidden');
                 dom.employeeView.classList.add('hidden');
-                dom.leadershipView.classList.remove('hidden');
                 
                 renderLeaderPersonalGoal(userName);
                 
                 const teamMembers = await findTeamMembers(userName);
                 await calculateTeamAndStructureData(userName, teamMembers);
                 
-                currentPlanningView = 'struktur';
-                updateLeadershipView();
-                updateMonthlyPlanningView(structureData);
-                dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
-                dom.strukturViewBtn.classList.add('active');
-                dom.teamViewBtn.classList.remove('active');
-                dom.personalViewBtn.classList.remove('active');
+                const positionLower = personalData.position ? personalData.position.toLowerCase() : '';
+                const isBezirksleiterOrWerdender = positionLower.includes('bezirksleiter') || positionLower.includes('werdender bezirksleiter');
 
+                if (isBezirksleiterOrWerdender) {
+                    dom.strukturViewBtn.classList.remove('hidden');
+                    currentPlanningView = 'struktur';
+                    updateMonthlyPlanningView(structureData);
+                    dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
+                    dom.strukturViewBtn.classList.add('active');
+                    dom.teamViewBtn.classList.remove('active');
+                    dom.personalViewBtn.classList.remove('active');
+                } else {
+                    dom.strukturViewBtn.classList.add('hidden');
+                    currentPlanningView = 'team';
+                    updateMonthlyPlanningView(teamData);
+                    dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                    dom.teamViewBtn.classList.add('active');
+                    dom.strukturViewBtn.classList.remove('active');
+                    dom.personalViewBtn.classList.remove('active');
+                }
+                updateLeadershipView();
 
             } else {
                 dom.planningViewToggle.classList.add('hidden');
