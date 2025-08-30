@@ -235,10 +235,11 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             border-color: #cbd5e1;
         }
-        .timeline-item.completed .timeline-content {
+        .timeline-item.completed.seminar .timeline-content,
+        .timeline-item.completed.other .timeline-content {
             background-color: #f0fdf4;
         }
-        .timeline-item-minor.locked .timeline-content {
+        .timeline-item.locked.timeline-item-minor .timeline-content {
              filter: blur(4px);
              pointer-events: none;
              user-select: none;
@@ -268,7 +269,10 @@
             left: -2.25rem;
             margin-right: -1.5rem;
         }
-        .timeline-item.completed .timeline-icon-inline { background-color: var(--color-accent-green); }
+        .timeline-item.completed.seminar .timeline-icon-inline,
+        .timeline-item.completed.other .timeline-icon-inline { 
+            background-color: var(--color-accent-green); 
+        }
 
         /* NEUE STILE FÜR SPEZIFISCHE ERLEDIGTE AUFGABEN */
         .timeline-item.completed.gespraech .timeline-icon-inline { background-color: var(--color-accent-purple); }
@@ -508,6 +512,11 @@
                     <p class="text-center sm:text-left text-skt-blue-light mb-8">Du hast <strong id="team-count" class="text-skt-blue">0</strong> aktive Mitarbeiter in deinem Team.</p>
                     <div id="team-members-container" class="mt-6"></div>
                     <div id="passive-members-section" class="mt-8"></div>
+                    <!-- NEU: Ansicht für Geschäftsstellen (nur für BL) -->
+                    <div id="agencies-section" class="hidden mt-12">
+                        <h2 class="text-2xl font-semibold text-skt-blue mb-4">Deine Geschäftsstellen</h2>
+                        <div id="agencies-container" class="mt-6"></div>
+                    </div>
                 </section>
             </div>          
         </main>
@@ -634,6 +643,8 @@
             teamCount: document.getElementById('team-count'),
             teamMembersContainer: document.getElementById('team-members-container'),
             passiveMembersSection: document.getElementById('passive-members-section'),
+            agenciesSection: document.getElementById('agencies-section'),
+            agenciesContainer: document.getElementById('agencies-container'),
             fortschrittKreisKarriere: document.getElementById('progress-circle-career'),
             careerProgressPercentage: document.getElementById('career-progress-percentage'),
             progressToNextText: document.getElementById('progress-to-next-text'),
@@ -1728,6 +1739,9 @@
                         iconClass = 'fa-star'; 
                         typeClass = 'meilenstein';
                         break;
+                    default:
+                        typeClass = 'other';
+                        break;
                 }
                 
                 if (isLocked) iconClass = 'fa-lock';
@@ -1751,7 +1765,7 @@
                     </div>
                 `;
 
-                if (!isLocked) {
+                if (!isLocked || isMajor) {
                      stepEl.querySelector('.timeline-content').addEventListener('click', () => {
                         dom.hinweisModalContent.textContent = step.hint;
                         dom.hinweisModal.classList.add('visible');
@@ -1799,6 +1813,120 @@
             }
         }
 
+        async function fetchAndRenderAgencies(userName) {
+            clearChildren(dom.agenciesContainer);
+
+            const query = `select A, B, C, D, E, F, G, H, J, M`;
+            const data = await fetchSheetQuery(sheetDataName, query);
+
+            if (!data || !data.table || !data.table.rows) {
+                dom.agenciesContainer.innerHTML = `<p class="text-center text-gray-500">Keine Geschäftsstellen-Daten gefunden.</p>`;
+                return;
+            }
+
+            const agenciesData = [];
+            const currentUserNameLower = userName.toLowerCase().trim();
+
+            for (const row of data.table.rows) {
+                const rowData = row.c;
+                if (!rowData) continue;
+                
+                const name = (rowData[0]?.v || "").toLowerCase().trim(); 
+                const bezirksleiter = (rowData[9]?.v || "").toLowerCase().trim();
+
+                if (name.startsWith('geschäftsstelle ') && bezirksleiter === currentUserNameLower) {
+                     agenciesData.push({
+                        name: rowData[0]?.v || 'Unbekannt',
+                        ehGoal: Math.round(rowData[1]?.v || 0),
+                        ehCurrent: Math.round(rowData[2]?.v || 0),
+                        etGoal: Math.round(rowData[3]?.v || 0),
+                        etCurrent: Math.round(rowData[4]?.v || 0),
+                        atGoal: Math.round(rowData[5]?.v || 0),
+                        atVereinbart: Math.round(rowData[6]?.v || 0),
+                        atCurrent: Math.round(rowData[7]?.v || 0),
+                        position: rowData[8]?.v || 'Geschäftsstelle'
+                    });
+                }
+            }
+
+            if (agenciesData.length === 0) {
+                dom.agenciesContainer.innerHTML = `<p class="text-center text-gray-500">Ihnen sind aktuell keine Geschäftsstellen zugeordnet.</p>`;
+                return;
+            }
+
+            const { startDate, endDate } = getMonthlyCycleDates();
+            const today = new Date();
+            const totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            const daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
+
+            dom.agenciesContainer.className = 'mt-6 space-y-4';
+            agenciesData.forEach(agency => {
+                const card = createAgencyCard(agency, totalDaysInCycle, daysPassedInCycle);
+                dom.agenciesContainer.appendChild(card);
+            });
+        }
+
+        function createAgencyCard(agency, totalDaysInCycle, daysPassedInCycle) {
+            const ehPercentage = agency.ehGoal > 0 ? (agency.ehCurrent / agency.ehGoal * 100) : 0;
+            const ehColorClass = getProgressColorClass(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
+            const prognosis = getPrognosis(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
+
+            const vereinbartPercent = agency.atGoal > 0 ? (agency.atVereinbart / agency.atGoal) * 100 : 0;
+            const gehaltenPercent = agency.atGoal > 0 ? (agency.atCurrent / agency.atGoal) * 100 : 0;
+            const atDetailsHtml = `
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
+                    <p class="text-md font-bold text-skt-blue">${agency.atCurrent} / ${agency.atVereinbart} / ${agency.atGoal}</p>
+                    <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
+                        <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(vereinbartPercent, 100)}%;"></div>
+                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(gehaltenPercent, 100)}%;"></div>
+                    </div>
+                </div>
+            `;
+            
+            const etPercentage = agency.etGoal > 0 ? (agency.etCurrent / agency.etGoal) * 100 : 0;
+            const etDetailsHtml = `
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-skt-blue mb-1">Bewerbungsgespräche</p>
+                    <p class="text-md font-bold text-skt-blue">${agency.etCurrent} / ${agency.etGoal}</p>
+                    <p class="text-xs text-gray-500 mb-2">Gehalten / Ziel</p>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
+                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(etPercentage, 100)}%;"></div>
+                    </div>
+                </div>
+            `;
+
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-lg transition-shadow hover:shadow-xl p-4';
+            
+            card.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <p class="font-bold text-skt-blue text-lg break-words">${agency.name}</p>
+                        <p class="text-sm text-skt-blue-light">${agency.position}</p>
+                    </div>
+                    <div class="flex items-center space-x-4 flex-shrink-0">
+                        <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <div class="flex justify-between items-baseline">
+                         <p class="text-xs text-skt-blue-light">Monatsfortschritt (EH)</p>
+                         <p class="text-xs font-semibold text-skt-blue">${agency.ehCurrent.toLocaleString('de-DE')} / ${agency.ehGoal.toLocaleString('de-DE')}</p>
+                    </div>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
+                        <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
+                    </div>
+                </div>
+                <div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    ${atDetailsHtml}
+                    ${etDetailsHtml}
+                </div>
+            `;
+            
+            return card;
+        }
 
         async function fetchAndRenderDashboard(userName){
             setStatus('Daten werden geladen...');
@@ -1839,9 +1967,18 @@
                 await renderLeadershipView(teamMembers);
                 updateMonthlyPlanningView(teamData);
                 dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                
+                if (personalData.position.toLowerCase().includes('bezirksleiter')) {
+                    await fetchAndRenderAgencies(userName);
+                    dom.agenciesSection.classList.remove('hidden');
+                } else {
+                    dom.agenciesSection.classList.add('hidden');
+                }
+
             } else {
                 dom.planningViewToggle.classList.add('hidden');
                 dom.leadershipView.classList.add('hidden');
+                dom.agenciesSection.classList.add('hidden');
                 dom.employeeView.classList.remove('hidden');
                 updateMonthlyPlanningView(personalData);
                 updateEmployeeCareerView();
