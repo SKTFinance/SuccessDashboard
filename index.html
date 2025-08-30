@@ -130,126 +130,158 @@
             color: var(--color-skt-blue-light);
         }
 
-        /* --- STILE FÜR NEUE EINARBEITUNGS-TIMELINE --- */
-        #einarbeitung-steps-container {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            position: relative;
-            padding-left: 2rem; /* Platz für die Timeline-Linie */
-            max-width: 800px;
-            margin: 0 auto;
+        /* --- STILE FÜR NEUESTE EINARBEITUNGS-TIMELINE --- */
+        .timeline-vertical-line {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #e2e8f0;
+            border-radius: 2px;
+            z-index: 1;
         }
-
-        /* Die durchgehende vertikale Linie */
-        #einarbeitung-steps-container::before {
+        .timeline-vertical-line-progress {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 0;
+            width: 4px;
+            background-color: var(--color-accent-green);
+            border-radius: 2px;
+            z-index: 2;
+            height: 0%;
+            transition: height 0.8s ease-out;
+        }
+        .timeline-date-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+        }
+        .timeline-date-marker {
+            position: absolute;
+            right: calc(50% + 10px);
+            transform: translateY(-50%);
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-skt-blue-light);
+            white-space: nowrap;
+            background-color: var(--color-skt-grey-light);
+            padding: 0 4px;
+        }
+        .timeline-date-marker::after {
             content: '';
             position: absolute;
-            top: 1.5rem;
-            bottom: 1.5rem;
-            left: 48px; /* Zentriert auf dem Icon (24px radius + 1rem padding-left) */
-            width: 4px;
-            background-color: #e2e8f0; /* slate-200 */
-            border-radius: 2px;
+            right: -10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 2px;
+            background-color: #94a3b8;
         }
 
         .timeline-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            position: relative;
-            opacity: 0; /* Für Animation */
+            opacity: 0;
             animation: slideIn 0.5s ease-out forwards;
         }
-
         @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        .timeline-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
+        
+        .timeline-item-major {
             display: flex;
             align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            z-index: 10;
-            background-color: white;
-            border: 4px solid var(--color-skt-grey-medium);
-            transition: all 0.4s ease;
+            gap: 1.5rem;
+            position: relative;
         }
-
-        .timeline-icon i {
-            font-size: 1.25rem;
-            color: var(--color-skt-grey-medium);
-            transition: color 0.4s ease;
+        .timeline-item-major::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: -3.5rem;
+            width: 1.5rem;
+            height: 2px;
+            background-color: #cbd5e1;
+            z-index: 3;
+        }
+        .timeline-item-major.completed::before,
+        .timeline-item-major.due::before {
+            background-color: var(--color-accent-green);
+        }
+        
+        .timeline-item-minor {
+            margin-left: 3rem; /* Indent minor items */
+            padding-left: 2rem;
+            border-left: 2px dotted #cbd5e1;
         }
 
         .timeline-content {
-            background-color: #f8fafc; /* slate-50 */
-            padding: 1rem;
+            background-color: #f8fafc;
+            padding: 0.75rem 1rem;
             border-radius: 0.75rem;
-            flex-grow: 1;
-            border: 1px solid #e2e8f0; /* slate-200 */
+            width: 100%;
+            border: 1px solid #e2e8f0;
             cursor: pointer;
             transition: all 0.3s ease;
         }
         .timeline-content:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-            border-color: #cbd5e1; /* slate-300 */
+            border-color: #cbd5e1;
+        }
+        .timeline-item.completed .timeline-content {
+            background-color: #f0fdf4;
+        }
+        .timeline-item.locked .timeline-content {
+             filter: blur(4px);
+             pointer-events: none;
+             user-select: none;
+             background-color: #f1f5f9;
         }
 
-        .timeline-title {
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .timeline-icon-inline {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background-color: var(--color-skt-grey-medium);
+            color: white;
+            border: 4px solid var(--color-skt-grey-light);
+        }
+        .timeline-item.timeline-item-major .timeline-icon-inline {
+            position: relative;
+            z-index: 5;
+            left: -3.5rem; /* Pull it over the line */
+            margin-right: -2.5rem;
+        }
+        .timeline-item.completed .timeline-icon-inline { background-color: var(--color-accent-green); }
+        .timeline-item.due.seminar .timeline-icon-inline,
+        .timeline-item.due.meilenstein .timeline-icon-inline { background-color: var(--color-accent-gold); }
+        .timeline-item.due.gespraech .timeline-icon-inline { background-color: var(--color-accent-purple); }
+
+
+        .timeline-info .timeline-title {
             font-weight: 600;
             color: var(--color-skt-blue);
         }
-
-        .timeline-duedate {
+        .timeline-info .timeline-duedate {
             font-size: 0.875rem;
             color: var(--color-skt-blue-light);
-            margin-top: 0.25rem;
         }
-
-        /* Zukünftige Schritte */
-        .timeline-item.future {
-            /* Styles bleiben dezent (grau ist Standard) */
-        }
-        .timeline-item.future .timeline-content {
-            background-color: #f8fafc; /* slate-50 */
-        }
-
-
-        /* Aktuelle / überfällige Schritte */
-        .timeline-item.due .timeline-icon {
-            border-width: 4px;
-        }
-        .timeline-item.due.seminar .timeline-icon { border-color: var(--color-skt-blue-main); }
-        .timeline-item.due.seminar .timeline-icon i { color: var(--color-skt-blue-main); }
-        .timeline-item.due.gespraech .timeline-icon { border-color: var(--color-accent-purple); }
-        .timeline-item.due.gespraech .timeline-icon i { color: var(--color-accent-purple); }
-        .timeline-item.due.meilenstein .timeline-icon { border-color: var(--color-accent-gold); }
-        .timeline-item.due.meilenstein .timeline-icon i { color: var(--color-accent-gold); }
-
-        /* Erledigte Schritte */
-        .timeline-item.completed .timeline-icon {
-            background-color: var(--color-accent-green);
-            border-color: var(--color-accent-green);
-        }
-        .timeline-item.completed .timeline-icon i {
-            display: none; /* Kein Haken, nur der grüne Kreis */
-        }
-        .timeline-item.completed .timeline-content {
-            opacity: 0.7;
-            background-color: #f0fdf4; /* green-50 */
-        }
-        .timeline-item.completed .timeline-title {
-            text-decoration: line-through;
-            color: #555;
-        }
-
         /* Stile für das iOS-Anleitungs-Modal und Hinweis-Modal */
         .modal-overlay {
             position: fixed;
@@ -454,15 +486,42 @@
                     <div id="team-members-container" class="mt-6"></div>
                     <div id="passive-members-section" class="mt-8"></div>
                 </section>
-            </div>      
+            </div>          
         </main>
 
         <!-- NEU: Ansicht für Einarbeitung -->
         <main id="einarbeitung-view" class="hidden w-full max-w-7xl mx-auto flex-grow px-6 md:px-8 pt-6 pb-6">
              <div class="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-                 <h2 class="text-2xl font-semibold text-skt-blue mb-8 text-center">Deine Einarbeitungsschritte</h2>
-                 <div id="einarbeitung-steps-container">
-                    <!-- Einarbeitungsschritte werden hier per JS eingefügt -->
+                 <h2 class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
+                 <div class="space-y-12">
+                     <!-- Abschnitt Grundseminar -->
+                     <div>
+                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Grundseminar</h3>
+                         <div class="timeline-wrapper flex gap-x-6">
+                            <div class="w-16 md:w-20 flex-shrink-0 relative pt-4 pb-4">
+                                <div class="timeline-vertical-line"></div>
+                                <div class="timeline-vertical-line-progress" id="grundseminar-progress"></div>
+                                <div class="timeline-date-markers" id="grundseminar-date-markers"></div>
+                            </div>
+                            <div id="grundseminar-steps-container" class="space-y-4 flex-grow">
+                                 <!-- Steps here -->
+                            </div>
+                        </div>
+                     </div>
+                     <!-- Abschnitt Aufbauseminar -->
+                     <div>
+                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Aufbauseminar</h3>
+                          <div class="timeline-wrapper flex gap-x-6">
+                             <div class="w-16 md:w-20 flex-shrink-0 relative pt-4 pb-4">
+                                <div class="timeline-vertical-line"></div>
+                                <div class="timeline-vertical-line-progress" id="aufbauseminar-progress"></div>
+                                <div class="timeline-date-markers" id="aufbauseminar-date-markers"></div>
+                            </div>
+                             <div id="aufbauseminar-steps-container" class="space-y-4 flex-grow">
+                                 <!-- Steps here -->
+                             </div>
+                         </div>
+                     </div>
                  </div>
              </div>
         </main>
@@ -600,7 +659,12 @@
             einarbeitungView: document.getElementById('einarbeitung-view'),
             einarbeitungBtn: document.getElementById('einarbeitung-btn'),
             einarbeitungBanner: document.getElementById('einarbeitung-banner'),
-            einarbeitungStepsContainer: document.getElementById('einarbeitung-steps-container'),
+            grundseminarStepsContainer: document.getElementById('grundseminar-steps-container'),
+            aufbauseminarStepsContainer: document.getElementById('aufbauseminar-steps-container'),
+            grundseminarProgress: document.getElementById('grundseminar-progress'),
+            aufbauseminarProgress: document.getElementById('aufbauseminar-progress'),
+            grundseminarDateMarkers: document.getElementById('grundseminar-date-markers'),
+            aufbauseminarDateMarkers: document.getElementById('aufbauseminar-date-markers'),
             hinweisModal: document.getElementById('hinweis-modal'),
             hinweisModalContent: document.getElementById('hinweis-modal-content'),
             closeHinweisModalBtn: document.getElementById('close-hinweis-modal-btn'),
@@ -695,13 +759,13 @@
 
         // --- PWA & SERVICE WORKER ---
         function registerServiceWorker() {
-          if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-              navigator.serviceWorker.register('./service-worker.js')
-                .then(registration => console.log('Service Worker: Registered'))
-                .catch(error => console.log('Service Worker: Registration Failed', error));
-            });
-          }
+         if ('serviceWorker' in navigator) {
+           window.addEventListener('load', () => {
+             navigator.serviceWorker.register('./service-worker.js')
+               .then(registration => console.log('Service Worker: Registered'))
+               .catch(error => console.log('Service Worker: Registration Failed', error));
+           });
+         }
         }
 
         function updateNotificationPromptVisibility() {
@@ -1475,27 +1539,19 @@
         
         // --- NEUE FUNKTIONEN FÜR EINARBEITUNG ---
         async function fetchAndRenderOnboarding(userName) {
-            // Wir holen alle Daten und sagen der API explizit, dass es keine Header-Zeilen gibt.
-            // So erhalten wir alle Zeilen des Sheets roh und können die Indizes selbst bestimmen.
             const query = 'select *';
             const data = await fetchSheetQuery(sheetEinarbeitungName, query, 0);
 
-            // Prüfen, ob genügend Zeilen für eine valide Struktur vorhanden sind.
-            // Wir brauchen mindestens Zeile 5 für die erste Aufgabe.
             if (!data || !data.table || !data.table.rows || data.table.rows.length < 5) {
-                dom.einarbeitungStepsContainer.innerHTML = '<p class="text-center text-gray-500">Einarbeitungsdaten konnten nicht geladen werden oder die Tabelle ist unvollständig.</p>';
+                dom.grundseminarStepsContainer.innerHTML = '<p class="text-center text-gray-500">Einarbeitungsdaten konnten nicht geladen werden.</p>';
+                dom.aufbauseminarStepsContainer.innerHTML = '';
                 return;
             }
 
-            // Da header=0 ist, entspricht der Array-Index der Zeilennummer - 1.
-            // Zeile 2 (Namen) -> Index 1
-            // Zeile 3 (Datum) -> Index 2
-            // Zeile 5 (Aufgaben) -> Index 4
             const nameRow = data.table.rows[1].c; 
             const dateRow = data.table.rows[2].c;
             let userColIndex = -1;
 
-            // Finde die Spalte des aktuellen Benutzers in der Namenszeile (ab Spalte E -> Index 4)
             for (let i = 4; i < nameRow.length; i++) {
                 if (nameRow[i] && nameRow[i].v && nameRow[i].v.toLowerCase().trim() === userName.toLowerCase().trim()) {
                     userColIndex = i;
@@ -1503,25 +1559,24 @@
                 }
             }
 
-            // Wenn der Name nicht gefunden wurde, zeige eine Nachricht an.
             if (userColIndex === -1) {
-                dom.einarbeitungStepsContainer.innerHTML = `<p class="text-center text-gray-500">Für dich ist kein Einarbeitungsplan hinterlegt.</p>`;
-                return;
-            }
-
-            // Hole das Startdatum aus der korrekten Zelle (Zeile 3, Spalte des Benutzers)
-            const startDateCell = dateRow[userColIndex];
-            if (!startDateCell || !startDateCell.v) {
-                dom.einarbeitungStepsContainer.innerHTML = `<p class="text-center text-red-500">Dein Startdatum für die Einarbeitung ist nicht in Zeile 3 eingetragen.</p>`;
+                 dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-gray-500">Für dich ist kein Einarbeitungsplan hinterlegt.</p>`;
+                 dom.aufbauseminarStepsContainer.innerHTML = '';
                 return;
             }
             
-            // Verarbeite das Datum, egal ob es als Google-Date-Objekt oder als Text kommt.
+            const startDateCell = dateRow[userColIndex];
+            if (!startDateCell || !startDateCell.v) {
+                dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-red-500">Dein Startdatum für die Einarbeitung ist nicht in Zeile 3 eingetragen.</p>`;
+                dom.aufbauseminarStepsContainer.innerHTML = '';
+                return;
+            }
+            
             let startDate;
             if (startDateCell.v.startsWith("Date(")) {
                 const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
                  if (dateMatch) {
-                    startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
+                     startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
                 }
             } else {
                 const parts = startDateCell.v.split('.');
@@ -1531,94 +1586,180 @@
             }
 
             if (!startDate || isNaN(startDate)) {
-                dom.einarbeitungStepsContainer.innerHTML = `<p class="text-center text-red-500">Dein Startdatum im Format TT.MM.JJJJ ist ungültig oder fehlt.</p>`;
+                dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-red-500">Dein Startdatum im Format TT.MM.JJJJ ist ungültig oder fehlt.</p>`;
+                dom.aufbauseminarStepsContainer.innerHTML = '';
                 return;
             }
 
-            const steps = [];
-            // Die Aufgaben beginnen ab Zeile 5 im Sheet, was dem Array-Index 4 entspricht.
+            const allSteps = [];
             for (let i = 4; i < data.table.rows.length; i++) { 
                 const row = data.table.rows[i].c;
-                if (!row || !row[2] || !row[2].v) continue; // Überspringe Zeilen ohne Titel in Spalte C
+                const type = (row && row[0] && row[0].v) ? row[0].v.toLowerCase().trim() : '';
+                const title = (row && row[2] && row[2].v) ? row[2].v.trim() : '';
+
+                if (type === 'versteckt' || type === 'abschnitt') {
+                    continue; 
+                }
+
+                if (!title) continue; 
 
                 const dueDate = new Date(startDate);
-                dueDate.setDate(dueDate.getDate() + (row[3]?.v || 0)); // Tage aus Spalte D addieren
+                dueDate.setDate(dueDate.getDate() + (row[3]?.v || 0));
                 
-                steps.push({
+                allSteps.push({
                     type: row[0]?.v || 'Unbekannt',
                     hint: row[1]?.v || 'Kein Hinweis verfügbar.',
-                    title: row[2].v,
+                    title: title,
                     dueDate: dueDate,
                     completed: row[userColIndex] && row[userColIndex].v === 'x'
                 });
             }
-            renderOnboardingSteps(steps);
-        }
+            
+            const aufbauStartIndex = allSteps.findIndex(step => step.title.toLowerCase().includes('aufbauseminar'));
+            let grundseminarSteps;
+            let aufbauseminarSteps;
 
-        function renderOnboardingSteps(steps) {
-            clearChildren(dom.einarbeitungStepsContainer);
-            if (steps.length === 0) {
-                 dom.einarbeitungStepsContainer.innerHTML = '<p class="text-center text-gray-500">Keine Einarbeitungsschritte gefunden.</p>';
-                 return;
+            if (aufbauStartIndex !== -1) {
+                grundseminarSteps = allSteps.slice(0, aufbauStartIndex);
+                aufbauseminarSteps = allSteps.slice(aufbauStartIndex);
+            } else {
+                const grundTestIndex = allSteps.findIndex(step => step.title.toLowerCase().includes('grundseminartest'));
+                if (grundTestIndex !== -1) {
+                    grundseminarSteps = allSteps.slice(0, grundTestIndex + 1);
+                    aufbauseminarSteps = allSteps.slice(grundTestIndex + 1);
+                } else {
+                    grundseminarSteps = allSteps;
+                    aufbauseminarSteps = [];
+                }
             }
 
+            renderTimelineSection(dom.grundseminarStepsContainer, dom.grundseminarProgress, dom.grundseminarDateMarkers, grundseminarSteps);
+            renderTimelineSection(dom.aufbauseminarStepsContainer, dom.aufbauseminarProgress, dom.aufbauseminarDateMarkers, aufbauseminarSteps);
+        }
+
+        function renderTimelineSection(container, progressElement, dateMarkerContainer, steps) {
+            clearChildren(container);
+            
+            if (steps.length === 0) {
+                 container.innerHTML = '<p class="text-center text-gray-500 mt-4">Für diesen Abschnitt sind keine Schritte vorhanden.</p>';
+                 progressElement.style.height = '0%';
+                 clearChildren(dateMarkerContainer);
+                 return;
+            }
+            
+            const sectionStartDate = steps[0].dueDate;
+            const sectionEndDate = steps[steps.length - 1].dueDate;
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Zeit für reinen Datumsvergleich normalisieren
+
+            const totalDuration = sectionEndDate.getTime() - sectionStartDate.getTime();
+            const elapsedDuration = today.getTime() - sectionStartDate.getTime();
+            
+            let timeProgressPercent = 0;
+            if (totalDuration > 0) {
+                timeProgressPercent = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100));
+            } else if (today >= sectionStartDate) {
+                timeProgressPercent = 100;
+            }
+
+            progressElement.style.height = `${timeProgressPercent}%`;
+            
+            renderDateMarkers(dateMarkerContainer, sectionStartDate, sectionEndDate);
+
+            today.setHours(0, 0, 0, 0);
 
             steps.forEach((step, index) => {
                 const stepEl = document.createElement('div');
+                const titleLower = step.title.toLowerCase();
+                
                 let statusClass = '';
-                let typeClass = '';
-                let iconClass = 'fa-question'; // Standard-Icon
+                let iconClass = 'fa-question';
+                let isLocked = false;
+                const isMajor = titleLower.includes('informationsabend') ||
+                                titleLower.includes('seminar karrierestart') ||
+                                titleLower.includes('grundseminar') ||
+                                titleLower.includes('aufbauseminar');
 
-                // 1. Status bestimmen (completed, due, future)
                 if (step.completed) {
                     statusClass = 'completed';
-                } else if (step.dueDate < today) {
-                    statusClass = 'due'; // Überfällig ist auch fällig
+                } else if (step.dueDate <= today) {
+                    statusClass = 'due'; 
                 } else {
-                    statusClass = 'future';
+                    statusClass = 'future locked';
+                    isLocked = true;
                 }
                 
-                // 2. Typ und Icon bestimmen
-                switch(step.type.toLowerCase()) {
-                    case 'seminar':
-                        typeClass = 'seminar';
-                        iconClass = 'fa-book';
-                        break;
-                    case 'persönliches gespräch':
-                        typeClass = 'gespraech';
-                        iconClass = 'fa-users';
-                        break;
-                    case 'meilenstein':
-                        typeClass = 'meilenstein';
-                        iconClass = 'fa-star';
-                        break;
+                const type = step.type.toLowerCase().trim();
+                switch(type) {
+                    case 'seminar': iconClass = 'fa-book'; break;
+                    case 'persönliches gespräch': iconClass = 'fa-users'; break;
+                    case 'meilenstein': iconClass = 'fa-star'; break;
                 }
+                
+                if (isLocked) iconClass = 'fa-lock';
 
-                stepEl.className = `timeline-item ${statusClass} ${typeClass}`;
+                stepEl.className = `timeline-item ${statusClass} ${isMajor ? 'timeline-item-major' : 'timeline-item-minor'}`;
                 stepEl.style.animationDelay = `${index * 0.1}s`;
                 
                 const formattedDate = step.dueDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 
                 stepEl.innerHTML = `
-                    <div class="timeline-icon">
-                        <i class="fas ${iconClass}"></i>
-                    </div>
                     <div class="timeline-content">
-                        <p class="timeline-title">${step.title}</p>
-                        <p class="timeline-duedate">Fällig bis: ${formattedDate}</p>
+                        <div class="timeline-header">
+                            <div class="timeline-icon-inline">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div class="timeline-info">
+                                <p class="timeline-title">${step.title}</p>
+                                <p class="timeline-duedate">Fällig bis: ${formattedDate}</p>
+                            </div>
+                        </div>
                     </div>
                 `;
 
-                // Click-Listener für das Modal hinzufügen
-                stepEl.querySelector('.timeline-content').addEventListener('click', () => {
-                    dom.hinweisModalContent.textContent = step.hint;
-                    dom.hinweisModal.classList.add('visible');
-                });
-
-                dom.einarbeitungStepsContainer.appendChild(stepEl);
+                if (!isLocked) {
+                     stepEl.querySelector('.timeline-content').addEventListener('click', () => {
+                        dom.hinweisModalContent.textContent = step.hint;
+                        dom.hinweisModal.classList.add('visible');
+                    });
+                }
+               
+                container.appendChild(stepEl);
             });
+        }
+        
+        function renderDateMarkers(container, startDate, endDate) {
+            clearChildren(container);
+            const totalDuration = endDate.getTime() - startDate.getTime();
+            if (totalDuration <= 0 && startDate.getTime() !== endDate.getTime()) return;
+
+            const createMarker = (date) => {
+                let topPercent = 0;
+                if (totalDuration > 0) {
+                    const elapsed = date.getTime() - startDate.getTime();
+                    topPercent = (elapsed / totalDuration) * 100;
+                } else {
+                     topPercent = 0;
+                }
+                
+                const marker = document.createElement('div');
+                marker.className = 'timeline-date-marker';
+                marker.textContent = date.toLocaleDateString('de-DE', { month: 'short' });
+                marker.style.top = `${Math.max(0, Math.min(100, topPercent))}%`;
+                
+                container.appendChild(marker);
+            };
+
+            createMarker(startDate);
+            
+            let cursorDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
+            while (cursorDate < endDate) {
+                createMarker(cursorDate);
+                cursorDate.setMonth(cursorDate.getMonth() + 1);
+            }
+            
+            if(startDate.getMonth() !== endDate.getMonth() || startDate.getFullYear() !== endDate.getFullYear()){
+                createMarker(endDate);
+            }
         }
 
 
@@ -1878,5 +2019,3 @@
     </script>
 </body>
 </html>
-
-
