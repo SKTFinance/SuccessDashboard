@@ -37,7 +37,7 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- Caching für Offline-Fähigkeit ---
-const CACHE_NAME = 'skt-dashboard-cache-v1';
+const CACHE_NAME = 'skt-dashboard-cache-v1.1';
 const urlsToCache = [
   './', 
   './index.html',
@@ -65,18 +65,5 @@ self.addEventListener('fetch', event => {
         }
         return fetch(event.request);
       })
-  );
-});
-
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(keyList =>
-      Promise.all(keyList.map(key => {
-        if (!cacheWhitelist.includes(key)) {
-          return caches.delete(key);
-        }
-      }))
-    )
   );
 });
