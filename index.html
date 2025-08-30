@@ -1867,9 +1867,41 @@
         }
 
         function createAgencyCard(agency, totalDaysInCycle, daysPassedInCycle) {
+             const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-lg transition-shadow hover:shadow-xl';
+
+            const summary = document.createElement('div');
+            summary.className = 'p-4 cursor-pointer';
+
             const ehPercentage = agency.ehGoal > 0 ? (agency.ehCurrent / agency.ehGoal * 100) : 0;
             const ehColorClass = getProgressColorClass(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
+
+            summary.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <div class="min-w-0">
+                        <p class="font-bold text-skt-blue text-lg break-words">${agency.name}</p>
+                        <p class="text-sm text-skt-blue-light">${agency.position}</p>
+                    </div>
+                    <div class="flex items-center space-x-4 flex-shrink-0">
+                        <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
+                        <button data-agencyname="${agency.name}" class="switch-to-agency-leader-btn text-skt-blue-light hover:text-skt-blue-main transition-colors" title="Zur Ansicht wechseln"><i class="fas fa-eye"></i></button>
+                        <i class="fas fa-chevron-down chevron-icon text-skt-blue-light"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <div class="flex justify-between items-baseline">
+                         <p class="text-xs text-skt-blue-light">Monatsfortschritt (EH)</p>
+                         <p class="text-xs font-semibold text-skt-blue">${agency.ehCurrent.toLocaleString('de-DE')} / ${agency.ehGoal.toLocaleString('de-DE')}</p>
+                    </div>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
+                        <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
+                    </div>
+                </div>
+            `;
+            
+            const details = document.createElement('div');
+            details.className = 'team-member-details px-4';
 
             const vereinbartPercent = agency.atGoal > 0 ? (agency.atVereinbart / agency.atGoal) * 100 : 0;
             const gehaltenPercent = agency.atGoal > 0 ? (agency.atCurrent / agency.atGoal) * 100 : 0;
@@ -1897,36 +1929,38 @@
                 </div>
             `;
 
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-lg transition-shadow hover:shadow-xl p-4';
-            
-            card.innerHTML = `
-                <div class="flex justify-between items-start gap-2">
-                    <div class="min-w-0">
-                        <p class="font-bold text-skt-blue text-lg break-words">${agency.name}</p>
-                        <p class="text-sm text-skt-blue-light">${agency.position}</p>
-                    </div>
-                    <div class="flex items-center space-x-4 flex-shrink-0">
-                        <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
-                    </div>
-                </div>
-                <div class="mt-2">
-                    <div class="flex justify-between items-baseline">
-                         <p class="text-xs text-skt-blue-light">Monatsfortschritt (EH)</p>
-                         <p class="text-xs font-semibold text-skt-blue">${agency.ehCurrent.toLocaleString('de-DE')} / ${agency.ehGoal.toLocaleString('de-DE')}</p>
-                    </div>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
-                        <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
-                    </div>
-                </div>
-                <div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    ${atDetailsHtml}
-                    ${etDetailsHtml}
-                </div>
-            `;
+            details.innerHTML = `<div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">${atDetailsHtml}${etDetailsHtml}</div>`;
+
+            card.appendChild(summary);
+            card.appendChild(details);
+
+            summary.addEventListener('click', (e) => {
+                if (!e.target.closest('.switch-to-agency-leader-btn')) {
+                    details.classList.toggle('open');
+                    summary.classList.toggle('open');
+                }
+            });
+
+            summary.querySelector('.switch-to-agency-leader-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const agencyName = e.currentTarget.dataset.agencyname;
+                const parts = agencyName.split(' ');
+                if (parts.length > 1) {
+                    const lastName = parts[parts.length - 1];
+                    const foundUser = allUsersCache.find(user => user.toLowerCase().includes(lastName.toLowerCase()));
+                    if (foundUser) {
+                        viewHistory.push(foundUser);
+                        fetchAndRenderDashboard(foundUser);
+                    } else {
+                        console.warn(`Kein Geschäftsstellenleiter für "${agencyName}" gefunden.`);
+                        // Hier könnte man eine kleine, nicht-blockierende Benachrichtigung anzeigen
+                    }
+                }
+            });
             
             return card;
         }
+
 
         async function fetchAndRenderDashboard(userName){
             setStatus('Daten werden geladen...');
