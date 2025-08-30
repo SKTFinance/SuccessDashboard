@@ -404,7 +404,8 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                         <h2 id="monthly-planning-title" class="text-2xl font-semibold text-skt-blue">Monatsplanung</h2>
                         <div id="planning-view-toggle" class="view-toggle hidden flex w-full sm:w-auto space-x-2">
-                            <button id="team-view-btn" class="active flex-1">Team</button>
+                            <button id="struktur-view-btn" class="active flex-1">Struktur</button>
+                            <button id="team-view-btn" class="flex-1">Team</button>
                             <button id="personal-view-btn" class="flex-1">Persönlich</button>
                         </div>
                     </div>
@@ -503,20 +504,15 @@
                 <section id="leadership-view" class="hidden bg-white rounded-2xl p-6 md:p-8 shadow-lg">
                     <div id="leader-personal-goal-container" class="mb-8"></div>
                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-                        <h2 class="text-2xl font-semibold text-skt-blue">Dein Team-Überblick</h2>
+                        <h2 id="leadership-view-title" class="text-2xl font-semibold text-skt-blue">Deine Struktur-Übersicht</h2>
                         <div id="team-view-mode-toggle" class="view-toggle flex space-x-2">
                             <button id="grid-view-btn" title="Kachelansicht"><i class="fas fa-th-large"></i></button>
                             <button id="list-view-btn" class="active" title="Listenansicht"><i class="fas fa-bars"></i></button>
                         </div>
                     </div>
-                    <p class="text-center sm:text-left text-skt-blue-light mb-8">Du hast <strong id="team-count" class="text-skt-blue">0</strong> aktive Mitarbeiter in deinem Team.</p>
+                    <p id="leadership-view-count" class="text-center sm:text-left text-skt-blue-light mb-8"></p>
                     <div id="team-members-container" class="mt-6"></div>
                     <div id="passive-members-section" class="mt-8"></div>
-                    <!-- NEU: Ansicht für Geschäftsstellen (nur für BL) -->
-                    <div id="agencies-section" class="hidden mt-12">
-                        <h2 class="text-2xl font-semibold text-skt-blue mb-4">Deine Geschäftsstellen</h2>
-                        <div id="agencies-container" class="mt-6"></div>
-                    </div>
                 </section>
             </div>          
         </main>
@@ -620,12 +616,14 @@
 
         let personalData = {};
         let teamData = {};
+        let structureData = {};
         let leaderPromotionData = [];
         let traineePromotionData = {};
-        let currentPlanningView = 'team';
+        let currentPlanningView = 'struktur';
         let allUsersCache = [];
         let currentTeamViewMode = 'list';
         let cachedActiveMembers = [];
+        let cachedAgenciesData = [];
         let cachedCycleData = {};
         let viewHistory = []; 
         let currentView = 'dashboard'; // NEU: 'dashboard' oder 'einarbeitung'
@@ -645,6 +643,9 @@
             passiveMembersSection: document.getElementById('passive-members-section'),
             agenciesSection: document.getElementById('agencies-section'),
             agenciesContainer: document.getElementById('agencies-container'),
+            leadershipViewTitle: document.getElementById('leadership-view-title'), 
+            leadershipViewCount: document.getElementById('leadership-view-count'),
+            teamViewModeToggle: document.getElementById('team-view-mode-toggle'),
             fortschrittKreisKarriere: document.getElementById('progress-circle-career'),
             careerProgressPercentage: document.getElementById('career-progress-percentage'),
             progressToNextText: document.getElementById('progress-to-next-text'),
@@ -686,6 +687,7 @@
             planningViewToggle: document.getElementById('planning-view-toggle'),
             teamViewBtn: document.getElementById('team-view-btn'),
             personalViewBtn: document.getElementById('personal-view-btn'),
+            strukturViewBtn: document.getElementById('struktur-view-btn'),
             gridViewBtn: document.getElementById('grid-view-btn'),
             listViewBtn: document.getElementById('list-view-btn'),
             // NEUE DOM ELEMENTE
@@ -1273,122 +1275,24 @@
             container.innerHTML = goalHtml;
         }
 
-        async function renderLeadershipView(team) {
-            clearChildren(dom.teamMembersContainer);
-            clearChildren(dom.passiveMembersSection);
-
-            if (team.length === 0) {
-                dom.teamCount.textContent = '0';
-                dom.teamMembersContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Du hast aktuell keine Mitarbeiter in der Liste.</p>`;
-                return;
-            }
-
-            const { startDate, endDate } = getMonthlyCycleDates();
-            const today = new Date();
-            cachedCycleData.totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
-            cachedCycleData.daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
-
-            const memberDataPromises = team.map(async (memberName) => {
-                const query = `select B, C, D, E, F, G, H, J where A = '${memberName.trim()}'`;
-                const data = await fetchSheetQuery(sheetDataName, query);
-                if (data && data.table.rows.length > 0) {
-                    const row = data.table.rows[0].c;
-                    return {
-                        name: memberName,
-                        ehGoal: Math.round(row[0]?.v || 0),
-                        ehCurrent: Math.round(row[1]?.v || 0),
-                        etGoal: Math.round(row[2]?.v || 0),
-                        etCurrent: Math.round(row[3]?.v || 0),
-                        atGoal: Math.round(row[4]?.v || 0),
-                        atVereinbart: Math.round(row[5]?.v || 0),
-                        atCurrent: Math.round(row[6]?.v || 0),
-                        position: row[7]?.v || 'N/A'
-                    };
-                }
-                return null;
-            });
-            
-            const membersData = (await Promise.all(memberDataPromises)).filter(Boolean);
-            const teamMembersTotal = membersData.reduce((acc, member) => {
-                acc.ehGoal += member.ehGoal;
-                acc.ehCurrent += member.ehCurrent;
-                acc.etGoal += member.etGoal;
-                acc.etCurrent += member.etCurrent;
-                acc.atGoal += member.atGoal;
-                acc.atVereinbart += member.atVereinbart;
-                acc.atCurrent += member.atCurrent;
-                return acc;
-            }, { ehGoal: 0, ehCurrent: 0, etGoal: 0, etCurrent: 0, atGoal: 0, atVereinbart: 0, atCurrent: 0 });
-
-            teamData = {
-                ehGoal: teamMembersTotal.ehGoal + (personalData.ehGoal || 0),
-                ehCurrent: teamMembersTotal.ehCurrent + (personalData.ehCurrent || 0),
-                etGoal: teamMembersTotal.etGoal + (personalData.etGoal || 0),
-                etCurrent: teamMembersTotal.etCurrent + (personalData.etCurrent || 0),
-                atGoal: teamMembersTotal.atGoal + (personalData.atGoal || 0),
-                atVereinbart: teamMembersTotal.atVereinbart + (personalData.atVereinbart || 0),
-                atCurrent: teamMembersTotal.atCurrent + (personalData.atCurrent || 0)
-            };
-
-            cachedActiveMembers = membersData.filter(m => m.ehGoal > 0 || m.etGoal > 0);
-            const passiveMembers = membersData.filter(m => m.ehGoal === 0 && m.etGoal === 0);
-
-            dom.teamCount.textContent = cachedActiveMembers.length;
-
-            renderTeamMemberCards();
-
-            if (passiveMembers.length > 0) {
-                const details = document.createElement('details');
-                details.className = 'bg-white rounded-xl shadow-lg';
-                const summary = document.createElement('summary');
-                summary.className = 'p-4 font-semibold text-skt-blue cursor-pointer';
-                summary.textContent = `Passive Mitarbeiter (${passiveMembers.length})`;
-                details.appendChild(summary);
-                const container = document.createElement('div');
-                container.className = 'p-4 pt-0 space-y-3';
-                passiveMembers.forEach(member => {
-                    const passiveCard = document.createElement('div');
-                    passiveCard.className = 'p-3 bg-skt-grey-light rounded-lg flex justify-between items-center';
-                    passiveCard.innerHTML = `
-                        <div>
-                            <p class="font-bold text-skt-blue">${member.name}</p>
-                            <p class="text-sm text-skt-blue-light">${member.position}</p>
-                        </div>
-                        <button data-username="${member.name}" class="switch-view-btn text-skt-blue-light hover:text-skt-blue-main transition-colors" title="Zur Ansicht wechseln">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    `;
-                    passiveCard.querySelector('.switch-view-btn').addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const newuser = e.currentTarget.dataset.username;
-                        viewHistory.push(newuser);
-                        fetchAndRenderDashboard(newuser);
-                    });
-                    container.appendChild(passiveCard);
-                });
-                details.appendChild(container);
-                dom.passiveMembersSection.appendChild(details);
-            }
-        }
-
-        function renderTeamMemberCards() {
+        function renderTeamMemberCards(members) {
             clearChildren(dom.teamMembersContainer);
             dom.teamMembersContainer.className = 'mt-6'; 
 
-            if (cachedActiveMembers.length === 0) {
+            if (members.length === 0) {
                 dom.teamMembersContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full">Du hast aktuell keine aktiven Mitarbeiter in der Liste.</p>`;
                 return;
             }
 
             if (currentTeamViewMode === 'grid') {
                 dom.teamMembersContainer.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-6');
-                cachedActiveMembers.forEach(member => {
+                members.forEach(member => {
                     const card = createMemberCardGrid(member, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
                     dom.teamMembersContainer.appendChild(card);
                 });
             } else { // 'list'
                 dom.teamMembersContainer.classList.add('space-y-4');
-                cachedActiveMembers.forEach(member => {
+                members.forEach(member => {
                     const card = createMemberCardList(member, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
                     dom.teamMembersContainer.appendChild(card);
                 });
@@ -1813,15 +1717,13 @@
             }
         }
 
-        async function fetchAndRenderAgencies(userName) {
-            clearChildren(dom.agenciesContainer);
-
+        async function fetchAgenciesData(userName) {
             const query = `select A, B, C, D, E, F, G, H, J, M`;
             const data = await fetchSheetQuery(sheetDataName, query);
 
             if (!data || !data.table || !data.table.rows) {
-                dom.agenciesContainer.innerHTML = `<p class="text-center text-gray-500">Keine Geschäftsstellen-Daten gefunden.</p>`;
-                return;
+                console.error("Keine Geschäftsstellen-Daten gefunden.");
+                return [];
             }
 
             const agenciesData = [];
@@ -1848,26 +1750,11 @@
                     });
                 }
             }
-
-            if (agenciesData.length === 0) {
-                dom.agenciesContainer.innerHTML = `<p class="text-center text-gray-500">Ihnen sind aktuell keine Geschäftsstellen zugeordnet.</p>`;
-                return;
-            }
-
-            const { startDate, endDate } = getMonthlyCycleDates();
-            const today = new Date();
-            const totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
-            const daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
-
-            dom.agenciesContainer.className = 'mt-6 space-y-4';
-            agenciesData.forEach(agency => {
-                const card = createAgencyCard(agency, totalDaysInCycle, daysPassedInCycle);
-                dom.agenciesContainer.appendChild(card);
-            });
+            return agenciesData;
         }
 
         function createAgencyCard(agency, totalDaysInCycle, daysPassedInCycle) {
-             const card = document.createElement('div');
+            const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-lg transition-shadow hover:shadow-xl';
 
             const summary = document.createElement('div');
@@ -1998,21 +1885,20 @@
                 renderLeaderPersonalGoal(userName);
                 
                 const teamMembers = await findTeamMembers(userName);
-                await renderLeadershipView(teamMembers);
-                updateMonthlyPlanningView(teamData);
-                dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                await calculateTeamAndStructureData(userName, teamMembers);
                 
-                if (personalData.position.toLowerCase().includes('bezirksleiter')) {
-                    await fetchAndRenderAgencies(userName);
-                    dom.agenciesSection.classList.remove('hidden');
-                } else {
-                    dom.agenciesSection.classList.add('hidden');
-                }
+                currentPlanningView = 'struktur';
+                updateLeadershipView();
+                updateMonthlyPlanningView(structureData);
+                dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
+                dom.strukturViewBtn.classList.add('active');
+                dom.teamViewBtn.classList.remove('active');
+                dom.personalViewBtn.classList.remove('active');
+
 
             } else {
                 dom.planningViewToggle.classList.add('hidden');
                 dom.leadershipView.classList.add('hidden');
-                dom.agenciesSection.classList.add('hidden');
                 dom.employeeView.classList.remove('hidden');
                 updateMonthlyPlanningView(personalData);
                 updateEmployeeCareerView();
@@ -2023,6 +1909,64 @@
             dom.dashboardSections.classList.remove('hidden');
             setTimeout(() => dom.dashboardSections.classList.remove('opacity-0'), 50);
             updateBackButtonVisibility();
+        }
+
+        async function calculateTeamAndStructureData(userName, team) {
+            const { startDate, endDate } = getMonthlyCycleDates();
+            const today = new Date();
+            cachedCycleData.totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            cachedCycleData.daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
+
+            const memberDataPromises = team.map(async (memberName) => {
+                const query = `select B, C, D, E, F, G, H, J where A = '${memberName.trim()}'`;
+                const data = await fetchSheetQuery(sheetDataName, query);
+                if (data && data.table.rows.length > 0) {
+                    const row = data.table.rows[0].c;
+                    return { name: memberName, ehGoal: Math.round(row[0]?.v || 0), ehCurrent: Math.round(row[1]?.v || 0), etGoal: Math.round(row[2]?.v || 0), etCurrent: Math.round(row[3]?.v || 0), atGoal: Math.round(row[4]?.v || 0), atVereinbart: Math.round(row[5]?.v || 0), atCurrent: Math.round(row[6]?.v || 0), position: row[7]?.v || 'N/A' };
+                }
+                return null;
+            });
+            
+            const membersData = (await Promise.all(memberDataPromises)).filter(Boolean);
+            const teamMembersTotal = membersData.reduce((acc, member) => {
+                acc.ehGoal += member.ehGoal;
+                acc.ehCurrent += member.ehCurrent;
+                acc.etGoal += member.etGoal;
+                acc.etCurrent += member.etCurrent;
+                acc.atGoal += member.atGoal;
+                acc.atVereinbart += member.atVereinbart;
+                acc.atCurrent += member.atCurrent;
+                return acc;
+            }, { ehGoal: 0, ehCurrent: 0, etGoal: 0, etCurrent: 0, atGoal: 0, atVereinbart: 0, atCurrent: 0 });
+
+            teamData = {
+                ehGoal: teamMembersTotal.ehGoal + (personalData.ehGoal || 0),
+                ehCurrent: teamMembersTotal.ehCurrent + (personalData.ehCurrent || 0),
+                etGoal: teamMembersTotal.etGoal + (personalData.etGoal || 0),
+                etCurrent: teamMembersTotal.etCurrent + (personalData.etCurrent || 0),
+                atGoal: teamMembersTotal.atGoal + (personalData.atGoal || 0),
+                atVereinbart: teamMembersTotal.atVereinbart + (personalData.atVereinbart || 0),
+                atCurrent: teamMembersTotal.atCurrent + (personalData.atCurrent || 0)
+            };
+
+            cachedActiveMembers = membersData;
+            
+            if (personalData.position.toLowerCase().includes('bezirksleiter')) {
+                cachedAgenciesData = await fetchAgenciesData(userName);
+                structureData = JSON.parse(JSON.stringify(teamData));
+                cachedAgenciesData.forEach(agency => {
+                    structureData.ehGoal += agency.ehGoal;
+                    structureData.ehCurrent += agency.ehCurrent;
+                    structureData.etGoal += agency.etGoal;
+                    structureData.etCurrent += agency.etCurrent;
+                    structureData.atGoal += agency.atGoal;
+                    structureData.atVereinbart += agency.atVereinbart;
+                    structureData.atCurrent += agency.atCurrent;
+                });
+            } else {
+                cachedAgenciesData = [];
+                structureData = JSON.parse(JSON.stringify(teamData));
+            }
         }
 
         async function getAllUsers() {
@@ -2085,6 +2029,90 @@
             }
         }
 
+        function updateLeadershipView() {
+            if (currentPlanningView === 'personal') {
+                dom.leadershipView.classList.add('hidden');
+                return;
+            }
+
+            dom.leadershipView.classList.remove('hidden');
+
+            if (currentPlanningView === 'struktur') {
+                renderAgenciesView();
+            } else { // team
+                renderTeamView();
+            }
+        }
+
+        function renderAgenciesView() {
+            dom.leadershipViewTitle.textContent = "Deine Struktur-Übersicht";
+            dom.teamViewModeToggle.classList.add('hidden');
+            clearChildren(dom.teamMembersContainer);
+            clearChildren(dom.passiveMembersSection);
+            
+            if (cachedAgenciesData.length === 0) {
+                dom.leadershipViewCount.innerHTML = `Du hast <strong>0</strong> Geschäftsstellen in deiner Struktur.`;
+                dom.teamMembersContainer.innerHTML = `<p class="text-center text-gray-500">Ihnen sind aktuell keine Geschäftsstellen zugeordnet.</p>`;
+                return;
+            }
+
+            dom.leadershipViewCount.innerHTML = `Du hast <strong>${cachedAgenciesData.length}</strong> Geschäftsstellen in deiner Struktur.`;
+            dom.teamMembersContainer.className = 'mt-6 space-y-4';
+            cachedAgenciesData.forEach(agency => {
+                const card = createAgencyCard(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
+                dom.teamMembersContainer.appendChild(card);
+            });
+        }
+        
+        function renderTeamView() {
+            dom.leadershipViewTitle.textContent = "Dein Team-Überblick";
+            dom.teamViewModeToggle.classList.remove('hidden');
+            
+            clearChildren(dom.teamMembersContainer);
+            clearChildren(dom.passiveMembersSection);
+
+            const activeMembers = cachedActiveMembers.filter(m => m.ehGoal > 0 || m.etGoal > 0);
+            const passiveMembers = cachedActiveMembers.filter(m => m.ehGoal === 0 && m.etGoal === 0);
+
+            dom.leadershipViewCount.innerHTML = `Du hast <strong class="text-skt-blue">${activeMembers.length}</strong> aktive Mitarbeiter in deinem Team.`;
+            
+            renderTeamMemberCards(activeMembers); 
+            
+            if (passiveMembers.length > 0) {
+                const details = document.createElement('details');
+                details.className = 'bg-white rounded-xl shadow-lg';
+                const summary = document.createElement('summary');
+                summary.className = 'p-4 font-semibold text-skt-blue cursor-pointer';
+                summary.textContent = `Passive Mitarbeiter (${passiveMembers.length})`;
+                details.appendChild(summary);
+                const container = document.createElement('div');
+                container.className = 'p-4 pt-0 space-y-3';
+                passiveMembers.forEach(member => {
+                    const passiveCard = document.createElement('div');
+                    passiveCard.className = 'p-3 bg-skt-grey-light rounded-lg flex justify-between items-center';
+                    passiveCard.innerHTML = `
+                        <div>
+                            <p class="font-bold text-skt-blue">${member.name}</p>
+                            <p class="text-sm text-skt-blue-light">${member.position}</p>
+                        </div>
+                        <button data-username="${member.name}" class="switch-view-btn text-skt-blue-light hover:text-skt-blue-main transition-colors" title="Zur Ansicht wechseln">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    `;
+                    passiveCard.querySelector('.switch-view-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const newuser = e.currentTarget.dataset.username;
+                        viewHistory.push(newuser);
+                        fetchAndRenderDashboard(newuser);
+                    });
+                    container.appendChild(passiveCard);
+                });
+                details.appendChild(container);
+                dom.passiveMembersSection.appendChild(details);
+            }
+        }
+
+
         // --- EVENTS ---
         dom.userSwitchButton.addEventListener('click', () => {
             localStorage.removeItem('loggedInUser');
@@ -2099,30 +2127,46 @@
 
         dom.teamViewBtn.addEventListener('click', () => {
             currentPlanningView = 'team';
-            dom.teamViewBtn.classList.add('active'); dom.personalViewBtn.classList.remove('active');
+            dom.teamViewBtn.classList.add('active'); 
+            dom.personalViewBtn.classList.remove('active');
+            dom.strukturViewBtn.classList.remove('active');
             dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
             updateMonthlyPlanningView(teamData);
+            updateLeadershipView();
         });
 
         dom.personalViewBtn.addEventListener('click', () => {
             currentPlanningView = 'personal';
-            dom.personalViewBtn.classList.add('active'); dom.teamViewBtn.classList.remove('active');
+            dom.personalViewBtn.classList.add('active'); 
+            dom.teamViewBtn.classList.remove('active');
+            dom.strukturViewBtn.classList.remove('active');
             dom.monthlyPlanningTitle.textContent = "Deine Monatsplanung";
             updateMonthlyPlanningView(personalData);
+            updateLeadershipView();
+        });
+        
+        dom.strukturViewBtn.addEventListener('click', () => {
+            currentPlanningView = 'struktur';
+            dom.strukturViewBtn.classList.add('active'); 
+            dom.teamViewBtn.classList.remove('active');
+            dom.personalViewBtn.classList.remove('active');
+            dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
+            updateMonthlyPlanningView(structureData);
+            updateLeadershipView();
         });
 
         dom.gridViewBtn.addEventListener('click', () => {
             if (currentTeamViewMode === 'grid') return;
             currentTeamViewMode = 'grid';
             dom.gridViewBtn.classList.add('active'); dom.listViewBtn.classList.remove('active');
-            renderTeamMemberCards();
+            renderTeamMemberCards(cachedActiveMembers);
         });
 
         dom.listViewBtn.addEventListener('click', () => {
             if (currentTeamViewMode === 'list') return;
             currentTeamViewMode = 'list';
             dom.listViewBtn.classList.add('active'); dom.gridViewBtn.classList.remove('active');
-            renderTeamMemberCards();
+            renderTeamMemberCards(cachedActiveMembers);
         });
         
         let touchStartY = 0, touchStartX = 0, isRefreshing = false;
