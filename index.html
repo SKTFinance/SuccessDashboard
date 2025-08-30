@@ -57,7 +57,7 @@
             background-color: var(--color-skt-grey-light);
         }
         
-        body.modal-open {
+        html.modal-open, body.modal-open {
             overflow: hidden;
         }
 
@@ -426,7 +426,7 @@
                                 <g id="segment-dividers-eh"></g>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center flex-col text-center">
-                                <p class="text-2xl sm:text-3xl font-bold text-skt-green-accent">
+                                <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-skt-green-accent">
                                     <span id="eh-center-current">0</span> / <span id="eh-center-goal">0</span>
                                 </p>
                                 <p class="text-sm text-gray-500">Einheiten erreicht</p>
@@ -481,7 +481,7 @@
                                 <circle class="bg-circle" cx="50" cy="50" r="40"></circle><circle class="progress-arc" cx="50" cy="50" r="40" id="progress-circle-career"></circle>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center flex-col text-center">
-                                <p id="career-progress-percentage" class="text-5xl font-bold text-skt-blue">0%</p><p class="text-sm text-skt-blue-light mt-1" id="progress-to-next-text">Fortschritt zum ...</p>
+                                <p id="career-progress-percentage" class="text-3xl sm:text-4xl lg:text-5xl font-bold text-skt-blue">0%</p><p class="text-sm text-skt-blue-light mt-1" id="progress-to-next-text">Fortschritt zum ...</p>
                             </div>
                         </div>
                         <div class="flex-grow md:w-1/2 grid grid-cols-2 gap-4 w-full">
@@ -1312,15 +1312,17 @@
             const summary = document.createElement('div');
             summary.className = 'p-4 cursor-pointer flex-grow';
 
-            const radius = 35;
+            const radius = 40;
             const circumference = 2 * Math.PI * radius;
             const offset = circumference * (1 - Math.min(ehPercentage, 100) / 100);
+            
+            const positionHtml = member.position.toLowerCase() !== 'geschäftsstelle' ? `<p class="text-sm text-skt-blue-light">${member.position}</p>` : `<p class="text-sm ${prognosis.colorClass} font-semibold">${prognosis.text}</p>`;
 
             summary.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <div>
                         <p class="font-bold text-skt-blue text-lg">${member.name}</p>
-                        <p class="text-sm text-skt-blue-light">${member.position}</p>
+                        ${positionHtml}
                     </div>
                     <div class="flex items-center space-x-2">
                          <button data-username="${member.name}" class="switch-view-btn text-skt-blue-light hover:text-skt-blue-main transition-colors" title="Zur Ansicht wechseln"><i class="fas fa-eye"></i></button>
@@ -1328,19 +1330,16 @@
                     </div>
                 </div>
                 <div class="flex justify-center items-center flex-col">
-                    <div class="w-32 h-32 relative">
+                    <div class="w-40 h-40 relative">
                         <svg class="team-progress-circle w-full h-full" viewBox="0 0 100 100">
                             <circle class="bg-circle" cx="50" cy="50" r="${radius}"></circle>
                             <circle class="progress-arc" cx="50" cy="50" r="${radius}" 
                                     style="stroke: ${ehColorHex}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${offset};"></circle>
                         </svg>
-                        <div class="absolute inset-0 flex items-center justify-center flex-col text-center">
-                            <p class="text-lg font-bold" style="color: ${ehColorHex};">${member.ehCurrent.toLocaleString('de-DE')} / ${member.ehGoal.toLocaleString('de-DE')}</p>
+                        <div class="absolute inset-0 flex items-center justify-center flex-col text-center px-2">
+                            <p class="text-base sm:text-lg font-bold" style="color: ${ehColorHex}; font-size: clamp(0.75rem, 4vw, 1.125rem);">${member.ehCurrent.toLocaleString('de-DE')} / ${member.ehGoal.toLocaleString('de-DE')}</p>
                             <p class="text-xs text-skt-blue-light">Einheiten</p>
                         </div>
-                    </div>
-                    <div class="mt-3">
-                        <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
                     </div>
                 </div>
             `;
@@ -1675,6 +1674,7 @@
                         dom.hinweisModalContent.textContent = step.hint;
                         dom.hinweisModal.classList.add('visible');
                         document.body.classList.add('modal-open');
+                        document.documentElement.classList.add('modal-open');
                     });
                 }
                
@@ -2057,7 +2057,7 @@
 
         function renderAgenciesView() {
             dom.leadershipViewTitle.textContent = "Deine Struktur-Übersicht";
-            dom.leadershipViewModeToggle.classList.remove('hidden');
+            dom.leadershipViewModeToggle.classList.remove('hidden'); // Show toggle for agencies
             clearChildren(dom.teamMembersContainer);
             clearChildren(dom.passiveMembersSection);
             
@@ -2264,7 +2264,7 @@
                 if (dom.userDropdownSelect.value) {
                     passwordContainer.classList.remove('hidden');
                     startBtn.classList.remove('hidden');
-                    setTimeout(() => document.getElementById('password-input').focus(), 200);
+                    setTimeout(() => document.getElementById('password-input').focus(), 300);
                 } else {
                     passwordContainer.classList.add('hidden');
                     startBtn.classList.add('hidden');
@@ -2282,17 +2282,20 @@
             dom.closeIosModalBtn.addEventListener('click', () => {
                 dom.iosInstructionsModal.classList.remove('visible');
                 document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
             });
 
             // Event Listener für Hinweis-Modal
             dom.closeHinweisModalBtn.addEventListener('click', () => {
                 dom.hinweisModal.classList.remove('visible');
                 document.body.classList.remove('modal-open');
+                document.documentElement.classList.remove('modal-open');
             });
             dom.hinweisModal.addEventListener('click', (e) => {
                 if(e.target === dom.hinweisModal) {
                     dom.hinweisModal.classList.remove('visible');
                     document.body.classList.remove('modal-open');
+                    document.documentElement.classList.remove('modal-open');
                 }
             });
         });
