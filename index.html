@@ -56,6 +56,10 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--color-skt-grey-light);
         }
+        
+        body.modal-open {
+            overflow: hidden;
+        }
 
         .font-times-new-roman {
             font-family: "Times New Roman", Times, serif;
@@ -422,7 +426,7 @@
                                 <g id="segment-dividers-eh"></g>
                             </svg>
                             <div class="absolute inset-0 flex items-center justify-center flex-col text-center">
-                                <p class="text-3xl font-bold text-skt-green-accent">
+                                <p class="text-2xl sm:text-3xl font-bold text-skt-green-accent">
                                     <span id="eh-center-current">0</span> / <span id="eh-center-goal">0</span>
                                 </p>
                                 <p class="text-sm text-gray-500">Einheiten erreicht</p>
@@ -505,7 +509,7 @@
                     <div id="leader-personal-goal-container" class="mb-8"></div>
                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
                         <h2 id="leadership-view-title" class="text-2xl font-semibold text-skt-blue">Deine Struktur-Übersicht</h2>
-                        <div id="team-view-mode-toggle" class="view-toggle flex space-x-2">
+                        <div id="leadership-view-mode-toggle" class="view-toggle flex space-x-2">
                             <button id="grid-view-btn" title="Kachelansicht"><i class="fas fa-th-large"></i></button>
                             <button id="list-view-btn" class="active" title="Listenansicht"><i class="fas fa-bars"></i></button>
                         </div>
@@ -621,7 +625,7 @@
         let traineePromotionData = {};
         let currentPlanningView = 'struktur';
         let allUsersCache = [];
-        let currentTeamViewMode = 'list';
+        let currentLeadershipViewMode = 'list';
         let cachedActiveMembers = [];
         let cachedAgenciesData = [];
         let cachedCycleData = {};
@@ -643,7 +647,7 @@
             passiveMembersSection: document.getElementById('passive-members-section'),
             leadershipViewTitle: document.getElementById('leadership-view-title'), 
             leadershipViewCount: document.getElementById('leadership-view-count'),
-            teamViewModeToggle: document.getElementById('team-view-mode-toggle'),
+            leadershipViewModeToggle: document.getElementById('leadership-view-mode-toggle'),
             fortschrittKreisKarriere: document.getElementById('progress-circle-career'),
             careerProgressPercentage: document.getElementById('career-progress-percentage'),
             progressToNextText: document.getElementById('progress-to-next-text'),
@@ -817,8 +821,7 @@
 
             if (isIOS && !isInStandaloneMode) {
                 dom.iosInstructionsModal.classList.add('visible');
-                document.body.style.overflow = 'hidden';
-                document.documentElement.style.overflow = 'hidden';
+                document.body.classList.add('modal-open');
                 return;
             }
 
@@ -1282,7 +1285,7 @@
                 return;
             }
 
-            if (currentTeamViewMode === 'grid') {
+            if (currentLeadershipViewMode === 'grid') {
                 dom.teamMembersContainer.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-6');
                 members.forEach(member => {
                     const card = createMemberCardGrid(member, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
@@ -1671,8 +1674,7 @@
                      stepEl.querySelector('.timeline-content').addEventListener('click', () => {
                         dom.hinweisModalContent.textContent = step.hint;
                         dom.hinweisModal.classList.add('visible');
-                        document.body.style.overflow = 'hidden';
-                        document.documentElement.style.overflow = 'hidden';
+                        document.body.classList.add('modal-open');
                     });
                 }
                
@@ -1766,10 +1768,9 @@
                 <div class="flex justify-between items-start gap-2">
                     <div class="min-w-0">
                         <p class="font-bold text-skt-blue text-lg break-words">${agency.name}</p>
-                        <p class="text-sm text-skt-blue-light">${agency.position}</p>
+                        <p class="text-sm ${prognosis.colorClass} font-semibold">${prognosis.text}</p>
                     </div>
                     <div class="flex items-center space-x-4 flex-shrink-0">
-                        <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
                         <button data-agencyname="${agency.name}" class="switch-to-agency-leader-btn text-skt-blue-light hover:text-skt-blue-main transition-colors" title="Zur Ansicht wechseln"><i class="fas fa-eye"></i></button>
                         <i class="fas fa-chevron-down chevron-icon text-skt-blue-light"></i>
                     </div>
@@ -1868,7 +1869,7 @@
             const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
             
             // Logik für Einarbeitungs-Banner (nur für Trainees)
-            if (isTrainee) {
+            if (isTrainee && personalData.totalCurrentEh === 0) {
                 dom.einarbeitungBanner.classList.remove('hidden');
             } else {
                 dom.einarbeitungBanner.classList.add('hidden');
@@ -1890,19 +1891,19 @@
                 if (isBezirksleiterOrWerdender) {
                     dom.strukturViewBtn.classList.remove('hidden');
                     currentPlanningView = 'struktur';
-                    updateMonthlyPlanningView(structureData);
-                    dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
                     dom.strukturViewBtn.classList.add('active');
                     dom.teamViewBtn.classList.remove('active');
                     dom.personalViewBtn.classList.remove('active');
+                    dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
+                    updateMonthlyPlanningView(structureData);
                 } else {
                     dom.strukturViewBtn.classList.add('hidden');
                     currentPlanningView = 'team';
-                    updateMonthlyPlanningView(teamData);
-                    dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
                     dom.teamViewBtn.classList.add('active');
                     dom.strukturViewBtn.classList.remove('active');
                     dom.personalViewBtn.classList.remove('active');
+                    dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                    updateMonthlyPlanningView(teamData);
                 }
                 updateLeadershipView();
 
@@ -2056,7 +2057,7 @@
 
         function renderAgenciesView() {
             dom.leadershipViewTitle.textContent = "Deine Struktur-Übersicht";
-            dom.teamViewModeToggle.classList.add('hidden');
+            dom.leadershipViewModeToggle.classList.remove('hidden');
             clearChildren(dom.teamMembersContainer);
             clearChildren(dom.passiveMembersSection);
             
@@ -2067,16 +2068,25 @@
             }
 
             dom.leadershipViewCount.innerHTML = `Du hast <strong>${cachedAgenciesData.length}</strong> Geschäftsstellen in deiner Struktur.`;
-            dom.teamMembersContainer.className = 'mt-6 space-y-4';
-            cachedAgenciesData.forEach(agency => {
-                const card = createAgencyCard(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
-                dom.teamMembersContainer.appendChild(card);
-            });
+            
+            if (currentLeadershipViewMode === 'grid') {
+                 dom.teamMembersContainer.className = 'mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+                 cachedAgenciesData.forEach(agency => {
+                    const card = createMemberCardGrid(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
+                    dom.teamMembersContainer.appendChild(card);
+                 });
+            } else { // list
+                dom.teamMembersContainer.className = 'mt-6 space-y-4';
+                cachedAgenciesData.forEach(agency => {
+                    const card = createAgencyCard(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
+                    dom.teamMembersContainer.appendChild(card);
+                });
+            }
         }
         
         function renderTeamView() {
             dom.leadershipViewTitle.textContent = "Dein Team-Überblick";
-            dom.teamViewModeToggle.classList.remove('hidden');
+            dom.leadershipViewModeToggle.classList.remove('hidden');
             
             clearChildren(dom.teamMembersContainer);
             clearChildren(dom.passiveMembersSection);
@@ -2166,17 +2176,17 @@
         });
 
         dom.gridViewBtn.addEventListener('click', () => {
-            if (currentTeamViewMode === 'grid') return;
-            currentTeamViewMode = 'grid';
+            if (currentLeadershipViewMode === 'grid') return;
+            currentLeadershipViewMode = 'grid';
             dom.gridViewBtn.classList.add('active'); dom.listViewBtn.classList.remove('active');
-            renderTeamMemberCards(cachedActiveMembers);
+            updateLeadershipView();
         });
 
         dom.listViewBtn.addEventListener('click', () => {
-            if (currentTeamViewMode === 'list') return;
-            currentTeamViewMode = 'list';
+            if (currentLeadershipViewMode === 'list') return;
+            currentLeadershipViewMode = 'list';
             dom.listViewBtn.classList.add('active'); dom.gridViewBtn.classList.remove('active');
-            renderTeamMemberCards(cachedActiveMembers);
+            updateLeadershipView();
         });
         
         let touchStartY = 0, touchStartX = 0, isRefreshing = false;
@@ -2254,7 +2264,7 @@
                 if (dom.userDropdownSelect.value) {
                     passwordContainer.classList.remove('hidden');
                     startBtn.classList.remove('hidden');
-                    setTimeout(() => document.getElementById('password-input').focus(), 100);
+                    setTimeout(() => document.getElementById('password-input').focus(), 200);
                 } else {
                     passwordContainer.classList.add('hidden');
                     startBtn.classList.add('hidden');
@@ -2271,21 +2281,18 @@
 
             dom.closeIosModalBtn.addEventListener('click', () => {
                 dom.iosInstructionsModal.classList.remove('visible');
-                document.body.style.overflow = '';
-                document.documentElement.style.overflow = '';
+                document.body.classList.remove('modal-open');
             });
 
             // Event Listener für Hinweis-Modal
             dom.closeHinweisModalBtn.addEventListener('click', () => {
                 dom.hinweisModal.classList.remove('visible');
-                document.body.style.overflow = '';
-                document.documentElement.style.overflow = '';
+                document.body.classList.remove('modal-open');
             });
             dom.hinweisModal.addEventListener('click', (e) => {
                 if(e.target === dom.hinweisModal) {
                     dom.hinweisModal.classList.remove('visible');
-                    document.body.style.overflow = '';
-                    document.documentElement.style.overflow = '';
+                    document.body.classList.remove('modal-open');
                 }
             });
         });
