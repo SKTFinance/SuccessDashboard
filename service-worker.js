@@ -67,3 +67,16 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then(keyList =>
+      Promise.all(keyList.map(key => {
+        if (!cacheWhitelist.includes(key)) {
+          return caches.delete(key);
+        }
+      }))
+    )
+  );
+});
