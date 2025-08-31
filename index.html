@@ -23,10 +23,11 @@
             --color-skt-blue-main: #38bdf8;
             --color-accent-green: #27ae60;
             --color-accent-red: #FF6347;
+            --color-accent-red-light: #fee2e2; /* NEU */
             --color-accent-yellow: #f1c40f;
             --color-accent-gold: #d4af37;
-            --color-accent-gold-light: #fff3cd; /* UPDATE für satteren Hintergrund */
-            --color-accent-purple: #8e44ad; /* NEUE FARBE FÜR PERSÖNLICHE GESPRÄCHE */
+            --color-accent-gold-light: #fff3cd; 
+            --color-accent-purple: #8e44ad;
         }
 
         .bg-skt-blue { background-color: var(--color-skt-blue); }
@@ -43,16 +44,17 @@
         .bg-skt-green-accent { background-color: var(--color-accent-green); }
         .text-skt-red-accent { color: var(--color-accent-red); }
         .bg-skt-red-accent { background-color: var(--color-accent-red); }
+        .bg-accent-red-light { background-color: var(--color-accent-red-light); } /* NEU */
         .text-skt-yellow-accent { color: var(--color-accent-yellow); }
         .bg-skt-yellow-accent { background-color: var(--color-accent-yellow); }
         .bg-skt-blue-accent { background-color: var(--color-skt-blue-main); }
         .text-gold { color: var(--color-accent-gold); }
-        .bg-accent-purple { background-color: var(--color-accent-purple); } /* NEU */
-        .border-accent-purple { border-color: var(--color-accent-purple); } /* NEU */
-        .bg-accent-gold { background-color: var(--color-accent-gold); } /* NEU */
-        .border-accent-gold { border-color: var(--color-accent-gold); } /* NEU */
-        .bg-accent-gold-light { background-color: var(--color-accent-gold-light); } /* NEU */
-        .border-skt-blue-accent { border-color: var(--color-skt-blue-main); } /* NEU */
+        .bg-accent-purple { background-color: var(--color-accent-purple); }
+        .border-accent-purple { border-color: var(--color-accent-purple); }
+        .bg-accent-gold { background-color: var(--color-accent-gold); }
+        .border-accent-gold { border-color: var(--color-accent-gold); }
+        .bg-accent-gold-light { background-color: var(--color-accent-gold-light); }
+        .border-skt-blue-accent { border-color: var(--color-skt-blue-main); }
         
         body {
             font-family: 'Inter', sans-serif;
@@ -522,7 +524,7 @@
                                 <p class="text-sm font-semibold text-skt-blue mb-2">Analysetermine</p>
                                 <p class="text-lg font-bold text-skt-blue" id="appointments-text">0 / 0 / 0</p>
                                 <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
-                                <div id="appointments-progress-bar" class="w-full bg-skt-yellow-accent h-3 rounded-full overflow-hidden relative">
+                                <div id="appointments-progress-bar" class="w-full bg-accent-red-light h-3 rounded-full overflow-hidden relative">
                                     <div id="appointments-vereinbart-bar" class="h-full bg-skt-blue-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%;"></div>
                                     <div id="appointments-gehalten-bar" class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%;"></div>
                                 </div>
@@ -2061,7 +2063,7 @@
             
             let timeProgressPercent = 0;
             if (totalDuration > 0) {
-                timeProgressPercent = Math.max(0, Math.min(100, (elapsedDuration / totalDuration) * 100));
+                timeProgressPercent = Math.max(0, Math.min(100, (elapsedPlanDuration / totalDuration) * 100));
             } else if (today >= sectionStartDate) {
                 timeProgressPercent = 100;
             }
@@ -2420,7 +2422,7 @@
         }
         
         function renderTeamView() {
-            dom.leadershipViewTitle.textContent = isSuperuserView ? "Alle Trainees" : "Deine Gruppen-Übersicht";
+            dom.leadershipViewTitle.textContent = isSuperuserView ? "Gesamtansicht Trainees" : "Deine Gruppen-Übersicht";
             dom.leadershipViewModeToggle.classList.remove('hidden');
             
             clearChildren(dom.teamMembersContainer);
@@ -2432,7 +2434,7 @@
             const passiveMembers = membersToRender.filter(m => m.ehGoal === 0 && m.etGoal === 0);
 
             dom.leadershipViewCount.innerHTML = isSuperuserView 
-                ? `<strong>${membersToRender.length}</strong> Trainees insgesamt.`
+                ? `<strong>${membersToRender.length}</strong> Trainee-Gruppen insgesamt.`
                 : `Du hast <strong class="text-skt-blue">${activeMembers.length}</strong> aktive Mitarbeiter in deiner Gruppe.`;
             
             renderTeamMemberCards(activeMembers); 
@@ -2471,18 +2473,7 @@
             }
         }
 
-        async function getAllTrainees() {
-            const data = await fetchSheetQuery(sheetDataName, `select A, J`);
-            if (data && data.table.rows) {
-                const trainees = data.table.rows
-                    .map(r => ({ name: r.c[0]?.v, position: r.c[1]?.v }))
-                    .filter(u => u.name && u.position && u.position.toLowerCase().trim() === 'trainee');
-                return filterUsers(trainees.map(t => t.name));
-            }
-            return [];
-        }
-
-       async function fetchAndRenderSuperuserView() {
+        async function fetchAndRenderSuperuserView() {
             isSuperuserView = true;
             setStatus('Lade Gesamtansicht...');
             dom.dashboardSections.classList.add('opacity-0');
@@ -2523,7 +2514,7 @@
                                 });
 
                                 leadersToDisplay.push({
-                                    name: prevRowData[0]?.v || '',
+                                    name: currentRowData[0]?.v || '',
                                     ehGoal: Math.round(prevRowData[1]?.v || 0),
                                     ehCurrent: Math.round(prevRowData[2]?.v || 0),
                                     etGoal: Math.round(prevRowData[3]?.v || 0),
@@ -2531,7 +2522,7 @@
                                     atGoal: Math.round(prevRowData[5]?.v || 0),
                                     atVereinbart: Math.round(prevRowData[6]?.v || 0),
                                     atCurrent: Math.round(prevRowData[7]?.v || 0),
-                                    position: prevRowData[8]?.v || 'N/A'
+                                    position: currentRowData[8]?.v || 'N/A'
                                 });
                              }
                         }
@@ -2562,7 +2553,7 @@
                 document.getElementById('leader-personal-goal-container').innerHTML = '';
                 document.getElementById('leader-personal-goal-container').classList.add('hidden');
                 
-                dom.monthlyPlanningTitle.textContent = "Gesamt Monatsplanung (Trainee-Gruppen)";
+                dom.monthlyPlanningTitle.textContent = "Gesamtansicht";
                 updateMonthlyPlanningView(superuserData);
                 
                 const { startDate, endDate } = getMonthlyCycleDates();
