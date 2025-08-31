@@ -90,7 +90,7 @@
         .dropdown-menu {
             position: absolute;
             top: 100%;
-            right: 0;
+            left: 0; /* Standard: nach rechts ausklappen (für Mobile) */
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -395,6 +395,14 @@
             visibility: visible;
         }
 
+        /* NEU: Dropdown-Menü auf größeren Bildschirmen anders ausrichten */
+        @media (min-width: 640px) { /* Tailwind 'sm' breakpoint */
+            .dropdown-menu {
+                left: auto;
+                right: 0; /* Auf Desktops nach links ausklappen */
+            }
+        }
+
         @media (min-width: 768px) {
             .timeline-item-major::before {
                 left: -3.5rem;
@@ -534,11 +542,9 @@
                                 </div>
                             </div>
                             <!-- UPDATE: Bewerbungsgespräche mit Balken -->
-                            <div class="p-4 bg-accent-gold-light rounded-xl shadow-md border-2 border-accent-gold">
-                                <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-                                    <p class="text-sm text-skt-blue-light font-bold" data-tooltip="Fortschritt deiner gehaltenen Bewerbungsgespräche.">ET Termine</p>
-                                    <p class="text-xl font-bold text-skt-blue mt-2 sm:mt-0"><span id="et-current">0</span> / <span id="et-goal">0</span></p>
-                                </div>
+                            <div class="p-4 bg-accent-gold-light rounded-xl shadow-md border-2 border-accent-gold text-center">
+                                <p class="text-sm text-skt-blue-light font-bold mb-2" data-tooltip="Fortschritt deiner gehaltenen Bewerbungsgespräche.">Einstellungstermine</p>
+                                <p class="text-xl font-bold text-skt-blue mb-4"><span id="et-current">0</span> / <span id="et-goal">0</span></p>
                                 <div id="interviews-progress-wrapper" class="w-full bg-skt-grey-medium h-3 rounded-full overflow-hidden relative">
                                     <div id="interviews-progress-bar" class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%;"></div>
                                 </div>
@@ -716,7 +722,7 @@
         const sheetPromotionsName = "Anstehende Beförderungen";
         const sheetEinarbeitungName = "Einarbeitung"; // NEU
 
-        const USER_FILTER_PREFIXES = ["geschäftsstelle", "bezirksleitung", "neuer ma", "wgst", "wbl", "ga ", "jgst", "summe direktion", "rd königslehner"];
+        const USER_FILTER_PREFIXES = ["geschäftsstelle", "bezirksleitung", "neuer ma", "wgst", "wbl", "ga ", "jgst", "summe direktion", "rd königslehner", "x "];
 
         const tierGoals = [
             { name: "T1", goal: 1250 },
