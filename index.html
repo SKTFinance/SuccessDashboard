@@ -1107,6 +1107,7 @@
         }
 
         async function fetchAndRenderDashboard(userName){
+            window.scrollTo(0, 0);
             isSuperuserView = false;
             setStatus('Daten werden geladen...');
             dom.dashboardSections.classList.add('opacity-0');
@@ -2624,11 +2625,12 @@
         // --- EVENTS ---
         dom.settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            // Sicherstellen, dass der Button nur für Führungskräfte sichtbar ist.
             const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
-            if (isTrainee) {
-                dom.superuserBtn.classList.add('hidden');
-            } else {
+            if (!isTrainee && personalData.position) { // Nur anzeigen, wenn Position geladen und kein Trainee
                 dom.superuserBtn.classList.remove('hidden');
+            } else {
+                dom.superuserBtn.classList.add('hidden');
             }
             dom.settingsMenu.classList.toggle('visible');
             dom.settingsMenu.classList.toggle('hidden');
