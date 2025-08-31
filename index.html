@@ -489,7 +489,7 @@
                         <h2 id="monthly-planning-title" class="text-2xl font-semibold text-skt-blue">Monatsplanung</h2>
                         <div id="planning-view-toggle" class="view-toggle hidden flex w-full sm:w-auto space-x-2">
                             <button id="struktur-view-btn" class="flex-1">Struktur</button>
-                            <button id="team-view-btn" class="active flex-1">Team</button>
+                            <button id="team-view-btn" class="active flex-1">Gruppe</button>
                             <button id="personal-view-btn" class="flex-1">Persönlich</button>
                         </div>
                     </div>
@@ -1155,7 +1155,7 @@
                         dom.teamViewBtn.classList.add('active');
                         dom.strukturViewBtn.classList.remove('active');
                         dom.personalViewBtn.classList.remove('active');
-                        dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                        dom.monthlyPlanningTitle.textContent = "Gruppen Monatsplanung";
                         updateMonthlyPlanningView(teamData);
                     }
                     updateLeadershipView();
@@ -1752,7 +1752,7 @@
             clearChildren(dom.leaderOnboardingView);
             dom.leaderOnboardingView.innerHTML = `<div class="loader mx-auto"></div>`;
 
-            const trainees = teamMembers.filter(m => m.toLowerCase().trim() !== 'x');
+            const trainees = teamMembers.filter(m => m.toLowerCase().trim() !== 'x'); 
             if (trainees.length === 0) {
                  dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Du hast aktuell keine Mitarbeiter in der Einarbeitung.</p>`;
                  return;
@@ -1767,12 +1767,25 @@
             }
             
             const nameRow = data.table.rows[1].c;
-            const allStepsCount = data.table.rows.filter((row, index) => {
-                if(index < 4) return false;
-                const type = (row.c && row.c[0] && row.c[0].v) ? row.c[0].v.toLowerCase().trim() : '';
-                const title = (row.c && row.c[2] && row.c[2].v) ? row.c[2].v.trim() : '';
-                return type !== 'versteckt' && type !== 'abschnitt' && title;
-            }).length;
+            const dateRow = data.table.rows[2].c;
+            
+            const allStepsWithOffsets = [];
+            let minOffset = Infinity;
+            let maxOffset = -Infinity;
+
+            for (let i = 4; i < data.table.rows.length; i++) {
+                const row = data.table.rows[i].c;
+                const type = (row && row[0] && row[0].v) ? row[0].v.toLowerCase().trim() : '';
+                const title = (row && row[2] && row[2].v) ? row[2].v.trim() : '';
+                const offset = row[3]?.v || 0;
+
+                if (type !== 'versteckt' && type !== 'abschnitt' && title) {
+                    allStepsWithOffsets.push({ offset: offset });
+                    if (offset < minOffset) minOffset = offset;
+                    if (offset > maxOffset) maxOffset = offset;
+                }
+            }
+            const allStepsCount = allStepsWithOffsets.length;
 
             const traineeProgressData = [];
 
@@ -1799,7 +1812,37 @@
                         }
                     }
                     const percentage = allStepsCount > 0 ? (completedSteps / allStepsCount) * 100 : 0;
-                    traineeProgressData.push({ name: traineeName, percentage: percentage });
+                    
+                    let sollPercentage = 0;
+                    const startDateCell = dateRow[userColIndex];
+                    if (startDateCell && startDateCell.v) {
+                        let startDate;
+                        if (startDateCell.v.startsWith("Date(")) {
+                            const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+                            if (dateMatch) startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
+                        } else {
+                            const parts = startDateCell.v.split('.');
+                            if (parts.length === 3) startDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                        }
+
+                        if (startDate && !isNaN(startDate)) {
+                            const traineePlanStartDate = new Date(startDate);
+                            traineePlanStartDate.setDate(startDate.getDate() + minOffset);
+                            const traineePlanEndDate = new Date(startDate);
+                            traineePlanEndDate.setDate(startDate.getDate() + maxOffset);
+                            const today = new Date();
+
+                            const totalPlanDuration = traineePlanEndDate.getTime() - traineePlanStartDate.getTime();
+                            const elapsedPlanDuration = today.getTime() - traineePlanStartDate.getTime();
+
+                            if (totalPlanDuration > 0) {
+                                sollPercentage = Math.max(0, Math.min(100, (elapsedPlanDuration / totalPlanDuration) * 100));
+                            } else if (today >= traineePlanStartDate) {
+                                sollPercentage = 100;
+                            }
+                        }
+                    }
+                    traineeProgressData.push({ name: traineeName, percentage, sollPercentage });
                 }
             }
 
@@ -1820,8 +1863,9 @@
                          <p class="font-bold text-skt-blue">${trainee.name}</p>
                          <p class="font-semibold text-skt-blue-light">${trainee.percentage.toFixed(0)}%</p>
                      </div>
-                     <div class="w-full bg-gray-300 rounded-full h-3">
-                         <div class="bg-skt-green-accent h-3 rounded-full" style="width: ${trainee.percentage.toFixed(0)}%"></div>
+                     <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
+                        <div class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.sollPercentage.toFixed(0)}%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
+                        <div class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.percentage.toFixed(0)}%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
                      </div>
                 `;
                 container.appendChild(card);
@@ -2170,6 +2214,7 @@
             summary.className = 'p-4 cursor-pointer';
 
             const ehPercentage = agency.ehGoal > 0 ? (agency.ehCurrent / agency.ehGoal * 100) : 0;
+            const etPercentage = agency.etGoal > 0 ? (agency.etCurrent / agency.etGoal * 100) : 0;
             const ehColorClass = getProgressColorClass(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(agency.ehCurrent, agency.ehGoal, totalDaysInCycle, daysPassedInCycle);
 
@@ -2186,45 +2231,38 @@
                 </div>
                 <div class="mt-2">
                     <div class="flex justify-between items-baseline">
-                         <p class="text-xs text-skt-blue-light">Monatsfortschritt (EH)</p>
+                         <p class="text-xs text-skt-blue-light">Einheiten (EH)</p>
                          <p class="text-xs font-semibold text-skt-blue">${agency.ehCurrent.toLocaleString('de-DE')} / ${agency.ehGoal.toLocaleString('de-DE')}</p>
                     </div>
                     <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
                         <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
                     </div>
                 </div>
+                 <div class="mt-2">
+                    <div class="flex justify-between items-baseline">
+                         <p class="text-xs text-skt-blue-light">ET Termine</p>
+                         <p class="text-xs font-semibold text-skt-blue">${agency.etCurrent} / ${agency.etGoal}</p>
+                    </div>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
+                        <div class="h-full bg-skt-green-accent" style="width: ${Math.min(etPercentage, 100)}%;"></div>
+                    </div>
+                </div>
             `;
             
             const details = document.createElement('div');
             details.className = 'team-member-details px-4';
-
-            const vereinbartPercent = agency.atGoal > 0 ? (agency.atVereinbart / agency.atGoal) * 100 : 0;
-            const gehaltenPercent = agency.atGoal > 0 ? (agency.atCurrent / agency.atGoal) * 100 : 0;
-            const atDetailsHtml = `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
-                    <p class="text-md font-bold text-skt-blue">${agency.atCurrent} / ${agency.atVereinbart} / ${agency.atGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(vereinbartPercent, 100)}%;"></div>
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(gehaltenPercent, 100)}%;"></div>
+            details.innerHTML = `
+                <div class="details-grid grid grid-cols-1 gap-4">
+                     <div class="text-center">
+                        <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
+                        <p class="text-md font-bold text-skt-blue">${agency.atCurrent} / ${agency.atVereinbart} / ${agency.atGoal}</p>
+                        <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
+                        <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
+                            <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(agency.atGoal > 0 ? (agency.atVereinbart / agency.atGoal) * 100 : 0, 100)}%;"></div>
+                            <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(agency.atGoal > 0 ? (agency.atCurrent / agency.atGoal) * 100 : 0, 100)}%;"></div>
+                        </div>
                     </div>
-                </div>
-            `;
-            
-            const etPercentage = agency.etGoal > 0 ? (agency.etCurrent / agency.etGoal) * 100 : 0;
-            const etDetailsHtml = `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Bewerbungsgespräche</p>
-                    <p class="text-md font-bold text-skt-blue">${agency.etCurrent} / ${agency.etGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Ziel</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(etPercentage, 100)}%;"></div>
-                    </div>
-                </div>
-            `;
-
-            details.innerHTML = `<div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">${atDetailsHtml}${etDetailsHtml}</div>`;
+                </div>`;
 
             card.appendChild(summary);
             card.appendChild(details);
@@ -2364,7 +2402,7 @@
         }
         
         function renderTeamView() {
-            dom.leadershipViewTitle.textContent = "Dein Team-Überblick";
+            dom.leadershipViewTitle.textContent = "Deine Gruppen-Übersicht";
             dom.leadershipViewModeToggle.classList.remove('hidden');
             
             clearChildren(dom.teamMembersContainer);
@@ -2373,7 +2411,7 @@
             const activeMembers = cachedActiveMembers.filter(m => m.ehGoal > 0 || m.etGoal > 0);
             const passiveMembers = cachedActiveMembers.filter(m => m.ehGoal === 0 && m.etGoal === 0);
 
-            dom.leadershipViewCount.innerHTML = `Du hast <strong class="text-skt-blue">${activeMembers.length}</strong> aktive Mitarbeiter in deinem Team.`;
+            dom.leadershipViewCount.innerHTML = `Du hast <strong class="text-skt-blue">${activeMembers.length}</strong> aktive Mitarbeiter in deiner Gruppe.`;
             
             renderTeamMemberCards(activeMembers); 
             
@@ -2421,25 +2459,32 @@
         
         dom.logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            localStorage.removeItem('loggedInUser');
-            localStorage.removeItem('hasVisitedOnboarding');
+            localStorage.clear();
+            sessionStorage.clear();
             viewHistory = [];
             location.reload();
         });
 
-        dom.clearCacheBtn.addEventListener('click', (e) => {
+        dom.clearCacheBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            localStorage.clear(); // Clear all local storage for this domain
-            if ('caches' in window) {
-                caches.keys().then(function(names) {
-                    for (let name of names) {
-                        caches.delete(name);
+            dom.clearCacheBtn.innerHTML = `<i class="fas fa-spinner fa-spin w-5 mr-2"></i>Wird geleert...`;
+            try {
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                        await registration.unregister();
                     }
-                }).then(() => {
-                    location.reload(true);
-                });
-            } else {
-                 location.reload(true);
+                }
+                if ('caches' in window) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(key => caches.delete(key)));
+                }
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.reload(true);
+            } catch (error) {
+                console.error('Fehler beim Leeren des Caches:', error);
+                dom.clearCacheBtn.innerHTML = `<i class="fas fa-sync-alt w-5 mr-2"></i>Cache leeren`;
             }
         });
         
@@ -2453,7 +2498,7 @@
             dom.teamViewBtn.classList.add('active'); 
             dom.personalViewBtn.classList.remove('active');
             dom.strukturViewBtn.classList.remove('active');
-            dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+            dom.monthlyPlanningTitle.textContent = "Gruppen Monatsplanung";
             updateMonthlyPlanningView(teamData);
             updateLeadershipView();
         });
@@ -2463,7 +2508,7 @@
             dom.personalViewBtn.classList.add('active'); 
             dom.teamViewBtn.classList.remove('active');
             dom.strukturViewBtn.classList.remove('active');
-            dom.monthlyPlanningTitle.textContent = "Deine Monatsplanung";
+            dom.monthlyPlanningTitle.textContent = "Persönliche Monatsplanung";
             updateMonthlyPlanningView(personalData);
             updateLeadershipView();
         });
