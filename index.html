@@ -607,50 +607,54 @@
         <!-- NEU: Ansicht für Einarbeitung -->
     <main id="einarbeitung-view" class="hidden w-full max-w-7xl mx-auto flex-grow px-4 md:px-8 pt-6 pb-6">
          <div class="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-             <h2 class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
+             <h2 id="einarbeitung-title" class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
              
-             <!-- UPDATE: Gesamtfortschrittsanzeige mit Soll -->
-             <div id="onboarding-progress-container" class="mb-8 px-2 md:px-4">
-                 <div class="flex justify-between items-center mb-1">
-                     <p class="font-semibold text-skt-blue">Gesamtfortschritt</p>
-                     <p id="onboarding-progress-text" class="font-bold text-skt-blue">0%</p>
+             <!-- Container für die Trainee-Ansicht -->
+             <div id="trainee-onboarding-view">
+                 <div id="onboarding-progress-container" class="mb-8 px-2 md:px-4">
+                     <div class="flex justify-between items-center mb-1">
+                         <p class="font-semibold text-skt-blue">Gesamtfortschritt</p>
+                         <p id="onboarding-progress-text" class="font-bold text-skt-blue">0%</p>
+                     </div>
+                     <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
+                        <div id="onboarding-soll-bar" class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
+                        <div id="onboarding-progress-bar" class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
+                     </div>
                  </div>
-                 <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
-                    <div id="onboarding-soll-bar" class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
-                    <div id="onboarding-progress-bar" class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
-                 </div>
-             </div>
 
-             <div class="space-y-12">
-                 <!-- Abschnitt Grundseminar -->
-                 <div>
-                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Grundseminar</h3>
-                         <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
-                             <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
-                                 <div class="timeline-vertical-line"></div>
-                                 <div class="timeline-vertical-line-progress" id="grundseminar-progress"></div>
-                                 <div class="timeline-date-markers" id="grundseminar-date-markers"></div>
-                             </div>
-                             <div id="grundseminar-steps-container" class="space-y-4 flex-grow">
-                                 <!-- Steps here -->
+                 <div class="space-y-12">
+                     <!-- Abschnitt Grundseminar -->
+                     <div>
+                             <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Grundseminar</h3>
+                             <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
+                                 <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
+                                     <div class="timeline-vertical-line"></div>
+                                     <div class="timeline-vertical-line-progress" id="grundseminar-progress"></div>
+                                     <div class="timeline-date-markers" id="grundseminar-date-markers"></div>
+                                 </div>
+                                 <div id="grundseminar-steps-container" class="space-y-4 flex-grow"></div>
                              </div>
                          </div>
+                         <!-- Abschnitt Aufbauseminar -->
+                         <div id="aufbauseminar-section-wrapper">
+                             <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Aufbauseminar</h3>
+                              <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
+                                 <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
+                                     <div class="timeline-vertical-line"></div>
+                                     <div class="timeline-vertical-line-progress" id="aufbauseminar-progress"></div>
+                                     <div class="timeline-date-markers" id="aufbauseminar-date-markers"></div>
+                                 </div>
+                                 <div id="aufbauseminar-steps-container" class="space-y-4 flex-grow"></div>
+                              </div>
+                         </div>
                      </div>
-                     <!-- Abschnitt Aufbauseminar -->
-                     <div id="aufbauseminar-section-wrapper">
-                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Aufbauseminar</h3>
-                          <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
-                             <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
-                                 <div class="timeline-vertical-line"></div>
-                                 <div class="timeline-vertical-line-progress" id="aufbauseminar-progress"></div>
-                                 <div class="timeline-date-markers" id="aufbauseminar-date-markers"></div>
-                             </div>
-                             <div id="aufbauseminar-steps-container" class="space-y-4 flex-grow">
-                                 <!-- Steps here -->
-                             </div>
-                          </div>
-                     </div>
-                 </div>
+                </div>
+
+                <!-- Container für die Führungskraft-Ansicht -->
+                <div id="leader-onboarding-view" class="hidden">
+                    <!-- Inhalt wird per JS generiert -->
+                </div>
+
              </div>
         </main>
     </div>
@@ -797,6 +801,9 @@
             einarbeitungView: document.getElementById('einarbeitung-view'),
             einarbeitungBtn: document.getElementById('einarbeitung-btn'),
             einarbeitungBanner: document.getElementById('einarbeitung-banner'),
+            einarbeitungTitle: document.getElementById('einarbeitung-title'),
+            traineeOnboardingView: document.getElementById('trainee-onboarding-view'),
+            leaderOnboardingView: document.getElementById('leader-onboarding-view'),
             grundseminarStepsContainer: document.getElementById('grundseminar-steps-container'),
             aufbauseminarStepsContainer: document.getElementById('aufbauseminar-steps-container'),
             grundseminarProgress: document.getElementById('grundseminar-progress'),
@@ -1081,8 +1088,11 @@
                     fetchUserData(userName), 
                     fetchCurrentUserPromotionData(userName),
                     fetchLeaderPromotionData(),
-                    fetchAndRenderOnboarding(userName) 
                 ]);
+
+                // Einarbeitung wird separat aufgerufen, damit wir Teammitglieder schon haben
+                const teamMembers = await findTeamMembers(userName);
+                await fetchAndRenderOnboarding(userName, teamMembers);
                 
                 if (dom.statusText.textContent.toLowerCase().includes('fehler')) {
                     dom.dashboardSections.classList.add('hidden');
@@ -1126,7 +1136,6 @@
                     
                     renderLeaderPersonalGoal(userName);
                     
-                    const teamMembers = await findTeamMembers(userName);
                     await calculateTeamAndStructureData(userName, teamMembers);
                     
                     const positionLower = personalData.position ? personalData.position.toLowerCase() : '';
@@ -1648,7 +1657,7 @@
 
         function createMemberCardList(member, totalDaysInCycle, daysPassedInCycle) {
             const ehPercentage = member.ehGoal > 0 ? (member.ehCurrent / member.ehGoal * 100) : 0;
-            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal) * 100 : 0;
+            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal * 100) : 0;
             const ehColorClass = getProgressColorClass(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const memberId = member.name.replace(/[^a-zA-Z0-9]/g, '');
@@ -1723,7 +1732,104 @@
         }
         
         // --- NEUE FUNKTIONEN FÜR EINARBEITUNG ---
-        async function fetchAndRenderOnboarding(userName) {
+        async function fetchAndRenderOnboarding(userName, teamMembers) {
+            const isTrainee = personalData.position.toLowerCase().trim() === 'trainee';
+
+            if (isTrainee) {
+                dom.einarbeitungTitle.textContent = "Dein Einarbeitungsplan";
+                dom.leaderOnboardingView.classList.add('hidden');
+                dom.traineeOnboardingView.classList.remove('hidden');
+                await renderTraineeOnboardingView(userName);
+            } else {
+                dom.einarbeitungTitle.textContent = "Einarbeitung: Team-Übersicht";
+                dom.traineeOnboardingView.classList.add('hidden');
+                dom.leaderOnboardingView.classList.remove('hidden');
+                await renderLeaderOnboardingView(teamMembers);
+            }
+        }
+
+        async function renderLeaderOnboardingView(teamMembers) {
+            clearChildren(dom.leaderOnboardingView);
+            dom.leaderOnboardingView.innerHTML = `<div class="loader mx-auto"></div>`;
+
+            const trainees = teamMembers.filter(m => m.toLowerCase().trim() !== 'x');
+            if (trainees.length === 0) {
+                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Du hast aktuell keine Mitarbeiter in der Einarbeitung.</p>`;
+                 return;
+            }
+
+            const query = 'select *';
+            const data = await fetchSheetQuery(sheetEinarbeitungName, query, 0);
+
+            if (!data || !data.table || !data.table.rows || data.table.rows.length < 5) {
+                dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Einarbeitungsdaten konnten nicht geladen werden.</p>`;
+                return;
+            }
+            
+            const nameRow = data.table.rows[1].c;
+            const allStepsCount = data.table.rows.filter((row, index) => {
+                if(index < 4) return false;
+                const type = (row.c && row.c[0] && row.c[0].v) ? row.c[0].v.toLowerCase().trim() : '';
+                const title = (row.c && row.c[2] && row.c[2].v) ? row.c[2].v.trim() : '';
+                return type !== 'versteckt' && type !== 'abschnitt' && title;
+            }).length;
+
+            const traineeProgressData = [];
+
+            for(const traineeName of trainees) {
+                let userColIndex = -1;
+                for (let i = 4; i < nameRow.length; i++) {
+                    if (nameRow[i] && nameRow[i].v && nameRow[i].v.toLowerCase().trim() === traineeName.toLowerCase().trim()) {
+                        userColIndex = i;
+                        break;
+                    }
+                }
+                
+                if (userColIndex !== -1) {
+                    let completedSteps = 0;
+                     for (let i = 4; i < data.table.rows.length; i++) {
+                         const row = data.table.rows[i].c;
+                         const type = (row && row[0] && row[0].v) ? row[0].v.toLowerCase().trim() : '';
+                         const title = (row && row[2] && row[2].v) ? row[2].v.trim() : '';
+
+                        if (type === 'versteckt' || type === 'abschnitt' || !title) continue;
+
+                        if (row[userColIndex] && row[userColIndex].v === 'x') {
+                             completedSteps++;
+                        }
+                    }
+                    const percentage = allStepsCount > 0 ? (completedSteps / allStepsCount) * 100 : 0;
+                    traineeProgressData.push({ name: traineeName, percentage: percentage });
+                }
+            }
+
+            clearChildren(dom.leaderOnboardingView);
+            if (traineeProgressData.length === 0) {
+                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Keine deiner Mitarbeiter haben einen hinterlegten Einarbeitungsplan.</p>`;
+                 return;
+            }
+
+            const container = document.createElement('div');
+            container.className = 'space-y-4';
+
+            traineeProgressData.forEach(trainee => {
+                const card = document.createElement('div');
+                card.className = 'bg-skt-grey-light p-4 rounded-lg shadow-md';
+                card.innerHTML = `
+                     <div class="flex justify-between items-center mb-1">
+                         <p class="font-bold text-skt-blue">${trainee.name}</p>
+                         <p class="font-semibold text-skt-blue-light">${trainee.percentage.toFixed(0)}%</p>
+                     </div>
+                     <div class="w-full bg-gray-300 rounded-full h-3">
+                         <div class="bg-skt-green-accent h-3 rounded-full" style="width: ${trainee.percentage.toFixed(0)}%"></div>
+                     </div>
+                `;
+                container.appendChild(card);
+            });
+            dom.leaderOnboardingView.appendChild(container);
+        }
+
+        async function renderTraineeOnboardingView(userName) {
             const progressContainer = document.getElementById('onboarding-progress-container');
             if (progressContainer) progressContainer.classList.add('hidden');
 
