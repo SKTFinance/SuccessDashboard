@@ -475,6 +475,7 @@
                         </button>
                         <div id="settings-menu" class="dropdown-menu hidden">
                              <a href="#" id="superuser-btn" class="hidden block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-users-cog w-5 mr-2"></i>Gesamtansicht</a>
+                             <a href="#" id="money-view-btn" class="block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-euro-sign w-5 mr-2"></i>Geld-Ansicht</a>
                              <a href="#" id="clear-cache-btn" class="block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-sync-alt w-5 mr-2"></i>Cache leeren</a>
                              <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-right-from-bracket w-5 mr-2"></i>Logout</a>
                         </div>
@@ -520,11 +521,11 @@
                                 <p class="text-xl sm:text-2xl lg:text-3xl font-bold text-skt-green-accent">
                                     <span id="eh-center-current">0</span> / <span id="eh-center-goal">0</span>
                                 </p>
-                                <p class="text-sm text-gray-500">Einheiten erreicht</p>
+                                <p id="eh-center-unit-label" class="text-sm text-gray-500">Einheiten erreicht</p>
                                 <p class="text-lg font-bold text-skt-yellow-accent mt-2">
                                     <span id="eh-soll-value">0</span>
                                 </p>
-                                <p class="text-xs text-gray-500">Soll Einheiten</p>
+                                <p id="eh-soll-unit-label" class="text-xs text-gray-500">Soll Einheiten</p>
                             </div>
                         </div>
                         <div class="flex-grow md:w-1/2 flex flex-col gap-8 w-full justify-center">
@@ -582,9 +583,9 @@
                         </div>
                         <div class="flex-grow md:w-1/2 grid grid-cols-2 gap-4 w-full">
                             <div class="p-4 bg-skt-grey-light rounded-xl shadow-md flex flex-col items-center justify-center text-center">
-                                <p class="text-xs text-skt-blue-light font-bold" data-tooltip="Deine gesamten erreichten Einheiten">Erreichte EH (insgesamt)</p>
+                                <p id="eh-value-title" class="text-xs text-skt-blue-light font-bold" data-tooltip="Deine gesamten erreichten Einheiten">Erreichte EH (insgesamt)</p>
                                 <div class="flex items-center justify-center h-full">
-                                    <p id="eh-value-display" class="text-2xl font-bold text-skt-blue mt-1"><span id="current-eh-display">0</span> EH</p><i id="eh-checkmark" class="fas fa-check-circle text-5xl text-green-500 hidden"></i>
+                                    <p id="eh-value-display" class="text-2xl font-bold text-skt-blue mt-1"><span id="current-eh-display">0</span><span id="eh-value-unit"> EH</span></p><i id="eh-checkmark" class="fas fa-check-circle text-5xl text-green-500 hidden"></i>
                                 </div>
                             </div>
                             <div class="p-4 bg-skt-grey-light rounded-xl shadow-md flex flex-col items-center justify-center text-center">
@@ -745,6 +746,7 @@
         let cachedActiveMembers = [];
         let cachedAgenciesData = [];
         let cachedCycleData = {};
+        let isMoneyView = false;
         let viewHistory = []; 
         let currentView = 'dashboard'; // NEU: 'dashboard' oder 'einarbeitung'
         let currentOnboardingSubView = 'leader-list'; // NEU: 'leader-list' oder 'trainee-detail'
@@ -806,6 +808,7 @@
             clearCacheBtn: document.getElementById('clear-cache-btn'),
             superuserBtn: document.getElementById('superuser-btn'),
             backButton: document.getElementById('back-button'), 
+            moneyViewBtn: document.getElementById('money-view-btn'),
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
             monthlyPlanningView: document.getElementById('monthly-planning-view'), // NEU
             planningViewToggle: document.getElementById('planning-view-toggle'),
@@ -833,6 +836,10 @@
             closeHinweisModalBtn: document.getElementById('close-hinweis-modal-btn'),
             iosInstructionsModal: document.getElementById('ios-instructions-modal'),
             closeIosModalBtn: document.getElementById('close-ios-modal-btn'),
+            ehCenterUnitLabel: document.getElementById('eh-center-unit-label'),
+            ehSollUnitLabel: document.getElementById('eh-soll-unit-label'),
+            ehValueUnit: document.getElementById('eh-value-unit'),
+            ehValueTitle: document.getElementById('eh-value-title'),
         };
 
         // --- HILFSFUNKTIONEN ---
@@ -1210,11 +1217,22 @@
             cachedCycleData.daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
 
             const memberDataPromises = team.map(async (memberName) => {
-                const query = `select B, C, D, E, F, G, H, J where A = '${memberName.trim()}'`;
+                const query = `select B, C, D, E, F, G, H, I, J where A = '${memberName.trim()}'`;
                 const data = await fetchSheetQuery(sheetDataName, query);
                 if (data && data.table.rows.length > 0) {
                     const row = data.table.rows[0].c;
-                    return { name: memberName, ehGoal: Math.round(row[0]?.v || 0), ehCurrent: Math.round(row[1]?.v || 0), etGoal: Math.round(row[2]?.v || 0), etCurrent: Math.round(row[3]?.v || 0), atGoal: Math.round(row[4]?.v || 0), atVereinbart: Math.round(row[5]?.v || 0), atCurrent: Math.round(row[6]?.v || 0), position: row[7]?.v || 'N/A' };
+                    return { 
+                        name: memberName, 
+                        ehGoal: Math.round(row[0]?.v || 0), 
+                        ehCurrent: Math.round(row[1]?.v || 0), 
+                        etGoal: Math.round(row[2]?.v || 0), 
+                        etCurrent: Math.round(row[3]?.v || 0), 
+                        atGoal: Math.round(row[4]?.v || 0), 
+                        atVereinbart: Math.round(row[5]?.v || 0), 
+                        atCurrent: Math.round(row[6]?.v || 0), 
+                        totalCurrentEh: Math.round(row[7]?.v || 0),
+                        position: row[8]?.v || 'N/A' 
+                    };
                 }
                 return null;
             });
@@ -1347,15 +1365,39 @@
         
         function updateMonthlyPlanningView(data) {
             updateWeeklyProgress();
-            
-            animateValue(dom.ehCenterCurrent, 0, data.ehCurrent, 1000, true);
-            dom.ehCenterGoal.textContent = data.ehGoal.toLocaleString('de-DE');
+
+            let displayValueCurrent = data.ehCurrent;
+            let displayValueGoal = data.ehGoal;
+            let isEuro = false;
+
+            if (isMoneyView && !isSuperuserView) {
+                isEuro = true;
+                if (currentPlanningView === 'personal') {
+                    const rate = getEarningsRate(personalData.position, personalData.totalCurrentEh);
+                    displayValueCurrent = personalData.ehCurrent * rate;
+                    displayValueGoal = personalData.ehGoal * rate;
+                } else if (currentPlanningView === 'team') {
+                    displayValueCurrent = calculateTotalEarnings(personalData, cachedActiveMembers, []);
+                    const avgRate = teamData.ehCurrent > 0 ? displayValueCurrent / teamData.ehCurrent : getEarningsRate(personalData.position, personalData.totalCurrentEh);
+                    displayValueGoal = teamData.ehGoal * avgRate;
+                } else if (currentPlanningView === 'struktur') {
+                    displayValueCurrent = calculateTotalEarnings(personalData, cachedActiveMembers, cachedAgenciesData);
+                    const avgRate = structureData.ehCurrent > 0 ? displayValueCurrent / structureData.ehCurrent : getEarningsRate(personalData.position, personalData.totalCurrentEh);
+                    displayValueGoal = structureData.ehGoal * avgRate;
+                }
+            }
+
+            dom.ehCenterUnitLabel.textContent = isEuro ? '€ verdient' : 'Einheiten erreicht';
+            dom.ehSollUnitLabel.textContent = isEuro ? 'Soll €' : 'Soll Einheiten';
+
+            animateValue(dom.ehCenterCurrent, 0, displayValueCurrent, 1000, true);
+            dom.ehCenterGoal.textContent = displayValueGoal.toLocaleString('de-DE', { maximumFractionDigits: 0 });
             animateValue(dom.etCurrentDisplay, 0, data.etCurrent, 1000, false);
             dom.etGoalDisplay.textContent = data.etGoal.toLocaleString('de-DE');
             
             const actualPercentage = data.ehGoal > 0 ? (data.ehCurrent / data.ehGoal * 100) : 0;
             updateCircleProgress(dom.ehProgressCircle, 45, actualPercentage);
-            
+
             const { startDate, endDate } = getMonthlyCycleDates();
             const today = new Date();
             const totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
@@ -1363,9 +1405,9 @@
             const timeElapsedPercentage = totalDaysInCycle > 0 ? (daysPassedInCycle / totalDaysInCycle) * 100 : 0;
             updateCircleProgress(dom.prognosisCircleEh, 35, timeElapsedPercentage);
 
-            const sollEinheiten = Math.round(data.ehGoal * (timeElapsedPercentage / 100));
+            const sollValue = Math.round(displayValueGoal * (timeElapsedPercentage / 100));
             if (dom.ehSollValue) {
-                animateValue(dom.ehSollValue, 0, sollEinheiten, 1000, true);
+                animateValue(dom.ehSollValue, 0, sollValue, 1000, true);
             }
 
             drawSegmentDividers();
@@ -1387,6 +1429,20 @@
         function updateEmployeeCareerView() {
             const ehValueDisplay = document.getElementById('eh-value-display');
             const ehCheckmark = document.getElementById('eh-checkmark');
+            
+            if (isMoneyView) {
+                const rate = getEarningsRate(personalData.position, personalData.totalCurrentEh);
+                const earnings = personalData.totalCurrentEh * rate;
+                animateValue(dom.currentEhDisplay, 0, earnings, 1500);
+                dom.ehValueUnit.textContent = ' €';
+                dom.ehValueTitle.textContent = 'Verdient (insgesamt)';
+                dom.ehValueTitle.dataset.tooltip = 'Dein gesamter Verdienst';
+            } else {
+                animateValue(dom.currentEhDisplay, 0, personalData.totalCurrentEh, 1500);
+                dom.ehValueUnit.textContent = ' EH';
+                dom.ehValueTitle.textContent = 'Erreichte EH (insgesamt)';
+                dom.ehValueTitle.dataset.tooltip = 'Deine gesamten erreichten Einheiten';
+            }
 
             if (personalData.totalCurrentEh >= 4000) {
                 ehValueDisplay.classList.add('hidden');
@@ -1394,7 +1450,6 @@
             } else {
                 ehValueDisplay.classList.remove('hidden');
                 ehCheckmark.classList.add('hidden');
-                animateValue(dom.currentEhDisplay, 0, personalData.totalCurrentEh, 1500);
             }
 
             let curTier=-1, curGoal=0, nextGoal=0, nextName="";
@@ -1681,12 +1736,24 @@
         }
 
         function createMemberCardList(member, totalDaysInCycle, daysPassedInCycle) {
-            const ehPercentage = member.ehGoal > 0 ? (member.ehCurrent / member.ehGoal * 100) : 0;
             const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal * 100) : 0;
-            const ehColorClass = getProgressColorClass(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const memberId = member.name.replace(/[^a-zA-Z0-9]/g, '');
             
+            let ehValue = member.ehCurrent;
+            let ehGoal = member.ehGoal;
+            let ehUnit = 'Einheiten (EH)';
+
+            if (isMoneyView) {
+                const rate = getEarningsRate(member.position, member.totalCurrentEh);
+                ehValue = member.ehCurrent * rate;
+                ehGoal = member.ehGoal * rate;
+                ehUnit = 'Verdienst (€)';
+            }
+
+            const ehPercentage = member.ehGoal > 0 ? (member.ehCurrent / member.ehGoal * 100) : 0;
+            const ehColorClass = getProgressColorClass(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
+
             const card = document.createElement('div');
             card.className = 'bg-white rounded-xl shadow-lg transition-shadow hover:shadow-xl';
             
@@ -1709,8 +1776,8 @@
                 </div>
                 <div class="mt-2">
                     <div class="flex justify-between items-baseline">
-                         <p class="text-xs text-skt-blue-light">Einheiten (EH)</p>
-                         <p class="text-xs font-semibold text-skt-blue">${member.ehCurrent.toLocaleString('de-DE')} / ${member.ehGoal.toLocaleString('de-DE')}</p>
+                         <p class="text-xs text-skt-blue-light">${ehUnit}</p>
+                         <p class="text-xs font-semibold text-skt-blue">${ehValue.toLocaleString('de-DE', {maximumFractionDigits: 0})} / ${ehGoal.toLocaleString('de-DE', {maximumFractionDigits: 0})}</p>
                     </div>
                     <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
                         <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
@@ -2521,6 +2588,15 @@
        }
        
         async function fetchAndRenderSuperuserView() {
+            // Sicherheitsprüfung: Nur Nicht-Trainees dürfen diese Ansicht sehen.
+            const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
+            if (isTrainee) {
+                console.warn("Zugriff auf Gesamtansicht für Trainee blockiert.");
+                // Optional: Eine sichtbare Meldung für den Benutzer anzeigen.
+                // alert("Diese Ansicht ist für deine Position nicht verfügbar.");
+                return;
+            }
+
             isSuperuserView = true;
             setStatus('Lade Gesamtansicht...');
             dom.dashboardSections.classList.add('opacity-0');
@@ -2528,6 +2604,12 @@
             dom.userPosition.textContent = 'Alle Trainee-Gruppen';
 
             try {
+                if (isMoneyView) {
+                    alert("Die Geld-Ansicht ist in der Gesamtübersicht nicht verfügbar und wird temporär deaktiviert.");
+                    isMoneyView = false;
+                    dom.moneyViewBtn.innerHTML = `<i class="fas fa-euro-sign w-5 mr-2"></i>Geld-Ansicht`;
+                }
+
                 const query = `select A, B, C, D, E, F, G, H, J`;
                 const data = await fetchSheetQuery(sheetDataName, query);
 
@@ -2636,6 +2718,20 @@
             dom.settingsMenu.classList.toggle('hidden');
         });
         
+        dom.moneyViewBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isMoneyView = !isMoneyView;
+            dom.moneyViewBtn.innerHTML = isMoneyView 
+                ? `<i class="fas fa-chart-pie w-5 mr-2"></i>EH-Ansicht` 
+                : `<i class="fas fa-euro-sign w-5 mr-2"></i>Geld-Ansicht`;
+            dom.settingsMenu.classList.add('hidden');
+            dom.settingsMenu.classList.remove('visible');
+            
+            const currentUser = viewHistory[viewHistory.length - 1];
+            if (isSuperuserView) fetchAndRenderSuperuserView();
+            else if (currentUser) fetchAndRenderDashboard(currentUser);
+        });
+
         dom.logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.clear();
@@ -2671,6 +2767,12 @@
             e.preventDefault();
             dom.settingsMenu.classList.add('hidden');
             dom.settingsMenu.classList.remove('visible');
+            // Sicherheitsprüfung: Nur Nicht-Trainees dürfen diese Ansicht sehen.
+            const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
+            if (isTrainee) {
+                alert("Diese Ansicht ist für deine Position nicht verfügbar.");
+                return;
+            }
             fetchAndRenderSuperuserView();
         });
         
