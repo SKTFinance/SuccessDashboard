@@ -741,6 +741,7 @@
         let cachedCycleData = {};
         let viewHistory = []; 
         let currentView = 'dashboard'; // NEU: 'dashboard' oder 'einarbeitung'
+        let currentOnboardingSubView = 'leader-list'; // NEU: 'leader-list' oder 'trainee-detail'
 
 
         // --- DOM ELEMENTS
@@ -1758,6 +1759,7 @@
                 dom.traineeOnboardingView.classList.remove('hidden');
                 await renderTraineeOnboardingView(userName);
             } else {
+                currentOnboardingSubView = 'leader-list'; // Zustand für die Zurück-Navigation setzen
                 dom.einarbeitungTitle.textContent = "Einarbeitung: Gruppen-Übersicht";
                 dom.traineeOnboardingView.classList.add('hidden');
                 dom.leaderOnboardingView.classList.remove('hidden');
@@ -1768,16 +1770,12 @@
         async function renderLeaderOnboardingView(teamMembers) {
             clearChildren(dom.leaderOnboardingView);
             dom.leaderOnboardingView.innerHTML = `<div class="loader mx-auto"></div>`;
-
-            const trainees = teamMembers.filter(m => m.toLowerCase().trim() !== 'x'); 
-            if (trainees.length === 0) {
-                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Du hast aktuell keine Mitarbeiter in der Einarbeitung.</p>`;
-                 return;
-            }
-
+ 
+            const teamMemberSet = new Set(teamMembers.map(m => m.toLowerCase().trim()));
+ 
             const query = 'select *';
             const data = await fetchSheetQuery(sheetEinarbeitungName, query, 0);
-
+ 
             if (!data || !data.table || !data.table.rows || data.table.rows.length < 5) {
                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Einarbeitungsdaten konnten nicht geladen werden.</p>`;
                 return;
@@ -1785,17 +1783,17 @@
             
             const nameRow = data.table.rows[1].c;
             const dateRow = data.table.rows[2].c;
-            
+ 
             const allStepsWithOffsets = [];
             let minOffset = Infinity;
             let maxOffset = -Infinity;
-
+ 
             for (let i = 4; i < data.table.rows.length; i++) {
                 const row = data.table.rows[i].c;
                 const type = (row && row[0] && row[0].v) ? row[0].v.toLowerCase().trim() : '';
                 const title = (row && row[2] && row[2].v) ? row[2].v.trim() : '';
                 const offset = row[3]?.v || 0;
-
+ 
                 if (type !== 'versteckt' && type !== 'abschnitt' && title) {
                     allStepsWithOffsets.push({ offset: offset });
                     if (offset < minOffset) minOffset = offset;
@@ -1803,69 +1801,69 @@
                 }
             }
             const allStepsCount = allStepsWithOffsets.length;
-
-            const traineeProgressData = [];
-
-            for(const traineeName of trainees) {
-                let userColIndex = -1;
-                for (let i = 4; i < nameRow.length; i++) {
-                    if (nameRow[i] && nameRow[i].v && nameRow[i].v.toLowerCase().trim() === traineeName.toLowerCase().trim()) {
-                        userColIndex = i;
-                        break;
-                    }
-                }
-                
-                if (userColIndex !== -1) {
-                    let completedSteps = 0;
+ 
+             const traineeProgressData = [];
+ 
+             // Iteriere durch alle Personen im "Einarbeitung"-Sheet
+             for (let userColIndex = 4; userColIndex < nameRow.length; userColIndex++) {
+                 const traineeNameCell = nameRow[userColIndex];
+                 if (!traineeNameCell || !traineeNameCell.v) continue;
+ 
+                 const traineeName = traineeNameCell.v;
+                 const traineeNameLower = traineeName.toLowerCase().trim();
+ 
+                 // Prüfe, ob diese Person zum Team der aktuellen Führungskraft gehört
+                 if (teamMemberSet.has(traineeNameLower)) {
+                     let completedSteps = 0;
                      for (let i = 4; i < data.table.rows.length; i++) {
                          const row = data.table.rows[i].c;
                          const type = (row && row[0] && row[0].v) ? row[0].v.toLowerCase().trim() : '';
                          const title = (row && row[2] && row[2].v) ? row[2].v.trim() : '';
-
-                        if (type === 'versteckt' || type === 'abschnitt' || !title) continue;
-
-                        if (row[userColIndex] && row[userColIndex].v === 'x') {
+ 
+                         if (type === 'versteckt' || type === 'abschnitt' || !title) continue;
+ 
+                         if (row[userColIndex] && row[userColIndex].v === 'x') {
                              completedSteps++;
-                        }
-                    }
-                    const percentage = allStepsCount > 0 ? (completedSteps / allStepsCount) * 100 : 0;
-                    
-                    let sollPercentage = 0;
-                    const startDateCell = dateRow[userColIndex];
-                    if (startDateCell && startDateCell.v) {
-                        let startDate;
-                        if (startDateCell.v.startsWith("Date(")) {
-                            const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
-                            if (dateMatch) startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
-                        } else {
-                            const parts = startDateCell.v.split('.');
-                            if (parts.length === 3) startDate = new Date(parts[2], parts[1] - 1, parts[0]);
-                        }
-
-                        if (startDate && !isNaN(startDate)) {
-                            const traineePlanStartDate = new Date(startDate);
-                            traineePlanStartDate.setDate(startDate.getDate() + minOffset);
-                            const traineePlanEndDate = new Date(startDate);
-                            traineePlanEndDate.setDate(startDate.getDate() + maxOffset);
-                            const today = new Date();
-
-                            const totalPlanDuration = traineePlanEndDate.getTime() - traineePlanStartDate.getTime();
-                            const elapsedPlanDuration = today.getTime() - traineePlanStartDate.getTime();
-
-                            if (totalPlanDuration > 0) {
-                                sollPercentage = Math.max(0, Math.min(100, (elapsedPlanDuration / totalPlanDuration) * 100));
-                            } else if (today >= traineePlanStartDate) {
-                                sollPercentage = 100;
+                         }
+                     }
+                     const percentage = allStepsCount > 0 ? (completedSteps / allStepsCount) * 100 : 0;
+ 
+                     let sollPercentage = 0;
+                     const startDateCell = dateRow[userColIndex];
+                     if (startDateCell && startDateCell.v) {
+                         let startDate;
+                         if (startDateCell.v.startsWith("Date(")) {
+                             const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+                             if (dateMatch) startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
+                         } else {
+                             const parts = startDateCell.v.split('.');
+                             if (parts.length === 3) startDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                         }
+ 
+                         if (startDate && !isNaN(startDate)) {
+                             const traineePlanStartDate = new Date(startDate);
+                             traineePlanStartDate.setDate(startDate.getDate() + minOffset);
+                             const traineePlanEndDate = new Date(startDate);
+                             traineePlanEndDate.setDate(startDate.getDate() + maxOffset);
+                             const today = new Date();
+ 
+                             const totalPlanDuration = traineePlanEndDate.getTime() - traineePlanStartDate.getTime();
+                             const elapsedPlanDuration = today.getTime() - traineePlanStartDate.getTime();
+ 
+                             if (totalPlanDuration > 0) {
+                                 sollPercentage = Math.max(0, Math.min(100, (elapsedPlanDuration / totalPlanDuration) * 100));
+                             } else if (today >= traineePlanStartDate) {
+                                 sollPercentage = 100;
                             }
-                        }
-                    }
-                    traineeProgressData.push({ name: traineeName, percentage, sollPercentage });
-                }
-            }
+                         }
+                     }
+                     traineeProgressData.push({ name: traineeName, percentage, sollPercentage });
+                 }
+             }
 
             clearChildren(dom.leaderOnboardingView);
             if (traineeProgressData.length === 0) {
-                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Keine deiner Mitarbeiter haben einen hinterlegten Einarbeitungsplan.</p>`;
+                 dom.leaderOnboardingView.innerHTML = `<p class="text-center text-gray-500">Keiner deiner Mitarbeiter befindet sich aktuell in der Einarbeitung.</p>`;
                  return;
             }
 
@@ -1873,19 +1871,21 @@
             container.className = 'space-y-4';
 
             traineeProgressData.forEach(trainee => {
-                const card = document.createElement('div');
-                card.className = 'bg-skt-grey-light p-4 rounded-lg shadow-md';
-                card.innerHTML = `
-                     <div class="flex justify-between items-center mb-1">
-                         <p class="font-bold text-skt-blue">${trainee.name}</p>
-                         <p class="font-semibold text-skt-blue-light">${trainee.percentage.toFixed(0)}%</p>
-                     </div>
-                     <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
-                        <div class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.sollPercentage.toFixed(0)}%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
-                        <div class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.percentage.toFixed(0)}%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
-                     </div>
-                `;
-                container.appendChild(card);
+                 const card = document.createElement('div');
+                 card.className = 'bg-skt-grey-light p-4 rounded-lg shadow-md cursor-pointer hover:bg-gray-200 transition-colors';
+                 card.dataset.traineeName = trainee.name;
+                 card.innerHTML = `
+                      <div class="flex justify-between items-center mb-1">
+                          <p class="font-bold text-skt-blue">${trainee.name}</p>
+                          <p class="font-semibold text-skt-blue-light">${trainee.percentage.toFixed(0)}%</p>
+                      </div>
+                      <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
+                         <div class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.sollPercentage.toFixed(0)}%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
+                         <div class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${trainee.percentage.toFixed(0)}%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
+                      </div>
+                 `;
+                 card.addEventListener('click', () => showTraineeDetailView(trainee.name));
+                 container.appendChild(card);
             });
             dom.leaderOnboardingView.appendChild(container);
         }
@@ -2336,6 +2336,18 @@
             });
         }
         
+        // NEU: Funktion um die Detailansicht eines Trainees in der Einarbeitungs-Ansicht anzuzeigen
+        function showTraineeDetailView(traineeName) {
+            dom.leaderOnboardingView.classList.add('hidden');
+            dom.traineeOnboardingView.classList.remove('hidden');
+            dom.einarbeitungTitle.textContent = `Einarbeitungsplan: ${traineeName}`;
+            
+            renderTraineeOnboardingView(traineeName);
+
+            currentOnboardingSubView = 'trainee-detail';
+            updateBackButtonVisibility();
+        }
+
         // --- NAVIGATION & VIEWS ---
         function updateBackButtonVisibility() {
             if (viewHistory.length > 1 || currentView === 'einarbeitung' || isSuperuserView) {
@@ -2370,8 +2382,20 @@
             }
 
             if (currentView === 'einarbeitung') {
-                switchView('dashboard');
-                return;
+                const isTrainee = personalData.position.toLowerCase().trim() === 'trainee';
+                // Wenn eine Führungskraft die Detailansicht eines Trainees betrachtet, gehe zurück zur Listenansicht
+                if (!isTrainee && currentOnboardingSubView === 'trainee-detail') {
+                    dom.traineeOnboardingView.classList.add('hidden');
+                    dom.leaderOnboardingView.classList.remove('hidden');
+                    dom.einarbeitungTitle.textContent = "Einarbeitung: Gruppen-Übersicht";
+                    currentOnboardingSubView = 'leader-list';
+                    // Die Liste muss nicht neu gerendert werden, da sie im DOM verbleibt.
+                    updateBackButtonVisibility();
+                    return;
+                }
+                 // Ansonsten, wechsle von der Einarbeitungsansicht zurück zum Dashboard
+                 switchView('dashboard');
+                 return;
             }
 
             if (viewHistory.length > 1) {
@@ -2827,4 +2851,3 @@
     </script>
 </body>
 </html>
-
