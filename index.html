@@ -25,6 +25,7 @@
             --color-accent-red: #FF6347;
             --color-accent-yellow: #f1c40f;
             --color-accent-gold: #d4af37;
+            --color-accent-gold-light: #fffbeb; /* NEU für Hintergrund */
             --color-accent-purple: #8e44ad; /* NEUE FARBE FÜR PERSÖNLICHE GESPRÄCHE */
         }
 
@@ -50,6 +51,7 @@
         .border-accent-purple { border-color: var(--color-accent-purple); } /* NEU */
         .bg-accent-gold { background-color: var(--color-accent-gold); } /* NEU */
         .border-accent-gold { border-color: var(--color-accent-gold); } /* NEU */
+        .bg-accent-gold-light { background-color: var(--color-accent-gold-light); } /* NEU */
         .border-skt-blue-accent { border-color: var(--color-skt-blue-main); } /* NEU */
         
         body {
@@ -133,6 +135,32 @@
             background-color: var(--color-skt-grey-light);
             color: var(--color-skt-blue-light);
         }
+        
+        /* Blur-Effekt für neue Mitarbeiter */
+        .blurred-section-overlay {
+            position: relative;
+        }
+        .blurred-section-overlay::after {
+            content: 'Wird ab 1 EH freigeschaltet';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(245, 245, 245, 0.7);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-skt-blue);
+            font-weight: bold;
+            font-size: 1.25rem;
+            text-align: center;
+            z-index: 10;
+            border-radius: 1rem; /* Passt zum Radius des Elternelements */
+        }
+
 
         /* --- STILE FÜR NEUESTE EINARBEITUNGS-TIMELINE --- */
         .timeline-vertical-line {
@@ -197,10 +225,11 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* UPDATE: Eingerückte Aufgaben vs. nicht eingerückte Meilensteine */
         .timeline-item-major {
             display: flex;
             align-items: center;
-            gap: 1rem; /* Responsive gap */
+            gap: 1rem; 
             position: relative;
         }
         .timeline-item-major::before {
@@ -243,13 +272,7 @@
         .timeline-item.completed.other .timeline-content {
             background-color: #f0fdf4;
         }
-        .timeline-item.locked.timeline-item-minor .timeline-content {
-             filter: blur(4px);
-             pointer-events: none;
-             user-select: none;
-             background-color: #f1f5f9;
-        }
-
+        
         .timeline-header {
             display: flex;
             align-items: center;
@@ -283,11 +306,37 @@
         .timeline-item.completed.gespraech .timeline-content { background-color: #f3e8f7; }
         .timeline-item.completed.meilenstein .timeline-icon-inline { background-color: var(--color-accent-gold); }
         .timeline-item.completed.meilenstein .timeline-content { background-color: #fef9e7; }
-        
+        .timeline-item.completed.hausuebung .timeline-icon-inline { background-color: var(--color-skt-blue-main); }
+        .timeline-item.completed.hausuebung .timeline-content { background-color: #e0f2fe; }
+
         .timeline-item.due.seminar .timeline-icon-inline { background-color: var(--color-accent-green); }
         .timeline-item.due.meilenstein .timeline-icon-inline { background-color: var(--color-accent-gold); }
         .timeline-item.due.gespraech .timeline-icon-inline { background-color: var(--color-accent-purple); }
+        .timeline-item.due.hausuebung .timeline-icon-inline { background-color: var(--color-skt-blue-main); }
 
+        /* NEU: Goldener Rahmen für Meilensteine */
+        .timeline-item.due.meilenstein .timeline-content,
+        .timeline-item.completed.meilenstein .timeline-content {
+             border: 2px solid var(--color-accent-gold);
+        }
+
+        /* NEU: Geblurrter Zustand für Aufbauseminar */
+        .aufbauseminar-blurred {
+             filter: blur(4px);
+             pointer-events: none;
+             user-select: none;
+             opacity: 0.6;
+             transition: all 0.3s ease-in-out;
+        }
+
+        /* NEU: Stil für überfällige Aufgaben */
+        .overdue-task {
+            background-color: #ffefef !important; /* Helles Rot */
+            border-color: var(--color-accent-red) !important;
+        }
+        .overdue-task .timeline-title {
+            color: var(--color-accent-red) !important;
+        }
 
         .timeline-info .timeline-title {
             font-weight: 600;
@@ -446,12 +495,15 @@
                                     <div id="appointments-gehalten-bar" class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%;"></div>
                                 </div>
                             </div>
-                            <div class="p-4 bg-skt-grey-light rounded-xl shadow-md">
+                            <!-- UPDATE: Bewerbungsgespräche mit Balken -->
+                            <div class="p-4 bg-accent-gold-light rounded-xl shadow-md">
                                 <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-                                    <p class="text-sm text-skt-blue-light font-bold" data-tooltip="Grün: Gehaltene Gespräche. Grau: Geplante, noch offene Gespräche.">Bewerbungsgespräche</p>
+                                    <p class="text-sm text-skt-blue-light font-bold" data-tooltip="Fortschritt deiner gehaltenen Bewerbungsgespräche.">Bewerbungsgespräche</p>
                                     <p class="text-xl font-bold text-skt-blue mt-2 sm:mt-0"><span id="et-current">0</span> / <span id="et-goal">0</span></p>
                                 </div>
-                                <div id="interview-pills" class="flex flex-wrap gap-2 items-center"></div>
+                                <div id="interviews-progress-wrapper" class="w-full bg-skt-grey-medium h-3 rounded-full overflow-hidden relative">
+                                    <div id="interviews-progress-bar" class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%;"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -522,37 +574,49 @@
         </main>
 
         <!-- NEU: Ansicht für Einarbeitung -->
-        <main id="einarbeitung-view" class="hidden w-full max-w-7xl mx-auto flex-grow px-4 md:px-8 pt-6 pb-6">
-             <div class="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
-                 <h2 class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
-                 <div class="space-y-12">
-                     <!-- Abschnitt Grundseminar -->
-                     <div>
+    <main id="einarbeitung-view" class="hidden w-full max-w-7xl mx-auto flex-grow px-4 md:px-8 pt-6 pb-6">
+         <div class="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
+             <h2 class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
+             
+             <!-- NEU: Gesamtfortschrittsanzeige -->
+             <div id="onboarding-progress-container" class="mb-8 px-2 md:px-4">
+                 <div class="flex justify-between items-center mb-1">
+                     <p class="font-semibold text-skt-blue">Gesamtfortschritt</p>
+                     <p id="onboarding-progress-text" class="font-bold text-skt-blue">0%</p>
+                 </div>
+                 <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                     <div id="onboarding-progress-bar" class="bg-skt-green-accent h-4 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                 </div>
+             </div>
+
+             <div class="space-y-12">
+                 <!-- Abschnitt Grundseminar -->
+                 <div>
                          <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Grundseminar</h3>
                          <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
-                            <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
-                                <div class="timeline-vertical-line"></div>
-                                <div class="timeline-vertical-line-progress" id="grundseminar-progress"></div>
-                                <div class="timeline-date-markers" id="grundseminar-date-markers"></div>
-                            </div>
-                            <div id="grundseminar-steps-container" class="space-y-4 flex-grow">
-                                 <!-- Steps here -->
-                            </div>
-                        </div>
-                     </div>
-                     <!-- Abschnitt Aufbauseminar -->
-                     <div>
-                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Aufbauseminar</h3>
-                          <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
                              <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
-                                <div class="timeline-vertical-line"></div>
-                                <div class="timeline-vertical-line-progress" id="aufbauseminar-progress"></div>
-                                <div class="timeline-date-markers" id="aufbauseminar-date-markers"></div>
-                            </div>
-                             <div id="aufbauseminar-steps-container" class="space-y-4 flex-grow">
+                                 <div class="timeline-vertical-line"></div>
+                                 <div class="timeline-vertical-line-progress" id="grundseminar-progress"></div>
+                                 <div class="timeline-date-markers" id="grundseminar-date-markers"></div>
+                             </div>
+                             <div id="grundseminar-steps-container" class="space-y-4 flex-grow">
                                  <!-- Steps here -->
                              </div>
                          </div>
+                     </div>
+                     <!-- Abschnitt Aufbauseminar -->
+                     <div id="aufbauseminar-section-wrapper">
+                         <h3 class="text-xl font-bold text-skt-blue-light mb-6 text-center border-b-2 border-skt-blue-main pb-3">Aufbauseminar</h3>
+                          <div class="timeline-wrapper flex gap-x-4 md:gap-x-6">
+                             <div class="w-12 md:w-20 flex-shrink-0 relative pt-4 pb-4">
+                                 <div class="timeline-vertical-line"></div>
+                                 <div class="timeline-vertical-line-progress" id="aufbauseminar-progress"></div>
+                                 <div class="timeline-date-markers" id="aufbauseminar-date-markers"></div>
+                             </div>
+                             <div id="aufbauseminar-steps-container" class="space-y-4 flex-grow">
+                                 <!-- Steps here -->
+                             </div>
+                          </div>
                      </div>
                  </div>
              </div>
@@ -668,7 +732,7 @@
             employeeCountDisplay: document.getElementById('employee-count-display'),
             employeeSlotsContainer: document.getElementById('employee-slots-container'),
             employeeGoalStatus: document.getElementById('employee-goal-status'),
-            interviewPillsContainer: document.getElementById('interview-pills'),
+            interviewsProgressBar: document.getElementById('interviews-progress-bar'), // UPDATE
             userDropdownSelect: document.getElementById('user-dropdown-select'),
             userSelectError: document.getElementById('user-select-error'),
             tierCards: [
@@ -686,6 +750,7 @@
             userSwitchButton: document.getElementById('user-switch-button'),
             backButton: document.getElementById('back-button'), 
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
+            monthlyPlanningView: document.getElementById('monthly-planning-view'), // NEU
             planningViewToggle: document.getElementById('planning-view-toggle'),
             teamViewBtn: document.getElementById('team-view-btn'),
             personalViewBtn: document.getElementById('personal-view-btn'),
@@ -798,12 +863,12 @@
         // --- PWA & SERVICE WORKER ---
         function registerServiceWorker() {
          if ('serviceWorker' in navigator) {
-           window.addEventListener('load', () => {
-             navigator.serviceWorker.register('./service-worker.js')
-               .then(registration => console.log('Service Worker: Registered'))
-               .catch(error => console.log('Service Worker: Registration Failed', error));
-           });
-         }
+            window.addEventListener('load', () => {
+              navigator.serviceWorker.register('./service-worker.js')
+                .then(registration => console.log('Service Worker: Registered'))
+                .catch(error => console.log('Service Worker: Registration Failed', error));
+            });
+          }
         }
 
         function updateNotificationPromptVisibility() {
@@ -902,7 +967,7 @@
             updateNotificationPromptVisibility();
             updateBackButtonVisibility();
         }
-
+        
         async function fetchUserData(userName) {
             const query = `select B, C, D, E, F, G, H, I, J where A = '${userName.trim()}'`;
                 const data = await fetchSheetQuery(sheetDataName, query);
@@ -969,6 +1034,151 @@
                 }
             }
             leaderPromotionData = promotions;
+        }
+
+        async function fetchAndRenderDashboard(userName){
+            setStatus('Daten werden geladen...');
+            dom.dashboardSections.classList.add('opacity-0');
+            dom.welcomeHeader.textContent=`Willkommen, ${userName}`;
+            
+            try {
+                await Promise.all([
+                    fetchUserData(userName), 
+                    fetchCurrentUserPromotionData(userName),
+                    fetchLeaderPromotionData(),
+                    fetchAndRenderOnboarding(userName) 
+                ]);
+                
+                if (dom.statusText.textContent.toLowerCase().includes('fehler')) {
+                    dom.dashboardSections.classList.add('hidden');
+                    return;
+                }
+                
+                dom.userPosition.textContent = personalData.position;
+                const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
+                
+                // UPDATE: Banner-Logik mit localStorage
+                if (isTrainee && personalData.totalCurrentEh === 0 && !localStorage.getItem('hasVisitedOnboarding')) {
+                    dom.einarbeitungBanner.classList.remove('hidden');
+                } else {
+                    dom.einarbeitungBanner.classList.add('hidden');
+                }
+
+                // UPDATE: Blur-Logik für neue Mitarbeiter
+                if (isTrainee && personalData.totalCurrentEh < 1) {
+                    dom.monthlyPlanningView.classList.add('blurred-section-overlay');
+                } else {
+                    dom.monthlyPlanningView.classList.remove('blurred-section-overlay');
+                }
+
+
+                // Logik für Ansichten
+                if (!isTrainee) {
+                    dom.planningViewToggle.classList.remove('hidden');
+                    dom.employeeView.classList.add('hidden');
+                    
+                    renderLeaderPersonalGoal(userName);
+                    
+                    const teamMembers = await findTeamMembers(userName);
+                    await calculateTeamAndStructureData(userName, teamMembers);
+                    
+                    const positionLower = personalData.position ? personalData.position.toLowerCase() : '';
+                    const isBezirksleiterOrWerdender = positionLower.includes('bezirksleiter') || positionLower.includes('werdender bezirksleiter');
+
+                    if (isBezirksleiterOrWerdender) {
+                        dom.strukturViewBtn.classList.remove('hidden');
+                        currentPlanningView = 'struktur';
+                        dom.strukturViewBtn.classList.add('active');
+                        dom.teamViewBtn.classList.remove('active');
+                        dom.personalViewBtn.classList.remove('active');
+                        dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
+                        updateMonthlyPlanningView(structureData);
+                    } else {
+                        dom.strukturViewBtn.classList.add('hidden');
+                        currentPlanningView = 'team';
+                        dom.teamViewBtn.classList.add('active');
+                        dom.strukturViewBtn.classList.remove('active');
+                        dom.personalViewBtn.classList.remove('active');
+                        dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
+                        updateMonthlyPlanningView(teamData);
+                    }
+                    updateLeadershipView();
+
+                } else {
+                    dom.planningViewToggle.classList.add('hidden');
+                    dom.leadershipView.classList.add('hidden');
+                    dom.employeeView.classList.remove('hidden');
+                    updateMonthlyPlanningView(personalData);
+                    updateEmployeeCareerView();
+                    dom.monthlyPlanningTitle.textContent = "Deine Monatsplanung";
+                }
+
+                setStatus('');
+                dom.dashboardSections.classList.remove('hidden');
+                setTimeout(() => dom.dashboardSections.classList.remove('opacity-0'), 50);
+                updateBackButtonVisibility();
+            } catch (error) {
+                console.error("Ein schwerwiegender Fehler ist im Dashboard aufgetreten:", error);
+                setStatus("Ein Fehler ist aufgetreten. Bitte laden Sie die Seite neu.", true);
+            }
+        }
+
+        async function calculateTeamAndStructureData(userName, team) {
+            const { startDate, endDate } = getMonthlyCycleDates();
+            const today = new Date();
+            cachedCycleData.totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
+            cachedCycleData.daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
+
+            const memberDataPromises = team.map(async (memberName) => {
+                const query = `select B, C, D, E, F, G, H, J where A = '${memberName.trim()}'`;
+                const data = await fetchSheetQuery(sheetDataName, query);
+                if (data && data.table.rows.length > 0) {
+                    const row = data.table.rows[0].c;
+                    return { name: memberName, ehGoal: Math.round(row[0]?.v || 0), ehCurrent: Math.round(row[1]?.v || 0), etGoal: Math.round(row[2]?.v || 0), etCurrent: Math.round(row[3]?.v || 0), atGoal: Math.round(row[4]?.v || 0), atVereinbart: Math.round(row[5]?.v || 0), atCurrent: Math.round(row[6]?.v || 0), position: row[7]?.v || 'N/A' };
+                }
+                return null;
+            });
+            
+            const membersData = (await Promise.all(memberDataPromises)).filter(Boolean);
+            const teamMembersTotal = membersData.reduce((acc, member) => {
+                acc.ehGoal += member.ehGoal;
+                acc.ehCurrent += member.ehCurrent;
+                acc.etGoal += member.etGoal;
+                acc.etCurrent += member.etCurrent;
+                acc.atGoal += member.atGoal;
+                acc.atVereinbart += member.atVereinbart;
+                acc.atCurrent += member.atCurrent;
+                return acc;
+            }, { ehGoal: 0, ehCurrent: 0, etGoal: 0, etCurrent: 0, atGoal: 0, atVereinbart: 0, atCurrent: 0 });
+
+            teamData = {
+                ehGoal: teamMembersTotal.ehGoal + (personalData.ehGoal || 0),
+                ehCurrent: teamMembersTotal.ehCurrent + (personalData.ehCurrent || 0),
+                etGoal: teamMembersTotal.etGoal + (personalData.etGoal || 0),
+                etCurrent: teamMembersTotal.etCurrent + (personalData.etCurrent || 0),
+                atGoal: teamMembersTotal.atGoal + (personalData.atGoal || 0),
+                atVereinbart: teamMembersTotal.atVereinbart + (personalData.atVereinbart || 0),
+                atCurrent: teamMembersTotal.atCurrent + (personalData.atCurrent || 0)
+            };
+
+            cachedActiveMembers = membersData;
+            
+            if (personalData.position.toLowerCase().includes('bezirksleiter')) {
+                cachedAgenciesData = await fetchAgenciesData(userName);
+                structureData = JSON.parse(JSON.stringify(teamData));
+                cachedAgenciesData.forEach(agency => {
+                    structureData.ehGoal += agency.ehGoal;
+                    structureData.ehCurrent += agency.ehCurrent;
+                    structureData.etGoal += agency.etGoal;
+                    structureData.etCurrent += agency.etCurrent;
+                    structureData.atGoal += agency.atGoal;
+                    structureData.atVereinbart += agency.atVereinbart;
+                    structureData.atCurrent += agency.atCurrent;
+                });
+            } else {
+                cachedAgenciesData = [];
+                structureData = JSON.parse(JSON.stringify(teamData));
+            }
         }
 
         function drawSegmentDividers() {
@@ -1087,12 +1297,10 @@
             dom.appointmentsVereinbartBar.style.width = `${Math.min(vereinbartPercent, 100)}%`;
             dom.appointmentsGehaltenBar.style.width = `${Math.min(gehaltenPercent, 100)}%`;
 
-            clearChildren(dom.interviewPillsContainer);
-            for(let i=0; i < data.etGoal; i++){
-                const pill = document.createElement('div');
-                pill.className = `px-3 py-1 text-white text-xs font-semibold rounded-full shadow-md ${i < data.etCurrent ? 'bg-skt-green-accent':'bg-skt-grey-medium'}`;
-                pill.textContent = i + 1;
-                dom.interviewPillsContainer.appendChild(pill);
+            // UPDATE: Logik für Bewerbungsgespräche-Balken
+            if(dom.interviewsProgressBar) {
+                 const etPercent = data.etGoal > 0 ? (data.etCurrent / data.etGoal) * 100 : 0;
+                 dom.interviewsProgressBar.style.width = `${Math.min(etPercent, 100)}%`;
             }
         }
 
@@ -1479,6 +1687,10 @@
         
         // --- NEUE FUNKTIONEN FÜR EINARBEITUNG ---
         async function fetchAndRenderOnboarding(userName) {
+            // FIX: Progress bar container anfangs ausblenden
+            const progressContainer = document.getElementById('onboarding-progress-container');
+            if (progressContainer) progressContainer.classList.add('hidden');
+
             const query = 'select *';
             const data = await fetchSheetQuery(sheetEinarbeitungName, query, 0);
 
@@ -1500,8 +1712,8 @@
             }
 
             if (userColIndex === -1) {
-                 dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-gray-500">Für dich ist kein Einarbeitungsplan hinterlegt.</p>`;
-                 dom.aufbauseminarStepsContainer.innerHTML = '';
+                dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-gray-500">Für dich ist kein Einarbeitungsplan hinterlegt.</p>`;
+                dom.aufbauseminarStepsContainer.innerHTML = '';
                 return;
             }
             
@@ -1515,8 +1727,8 @@
             let startDate;
             if (startDateCell.v.startsWith("Date(")) {
                 const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
-                 if (dateMatch) {
-                     startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
+                if (dateMatch) {
+                    startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
                 }
             } else {
                 const parts = startDateCell.v.split('.');
@@ -1573,6 +1785,39 @@
                 }
             }
 
+            // NEU: Gesamtfortschritt berechnen und anzeigen
+            if (progressContainer) {
+                progressContainer.classList.remove('hidden');
+                const totalSteps = allSteps.length;
+                const completedSteps = allSteps.filter(step => step.completed).length;
+                const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+                const progressBar = document.getElementById('onboarding-progress-bar');
+                const progressText = document.getElementById('onboarding-progress-text');
+                if(progressBar && progressText) {
+                    progressBar.style.width = `${progressPercentage.toFixed(0)}%`;
+                    progressText.textContent = `${progressPercentage.toFixed(0)}%`;
+                }
+            }
+
+            // UPDATE: Logik zum Blurring des Aufbauseminars
+            const isGrundseminarComplete = grundseminarSteps.every(step => step.completed);
+            const aufbauWrapper = document.getElementById('aufbauseminar-section-wrapper');
+            let shouldBlur = true;
+            if (isGrundseminarComplete) {
+                shouldBlur = false;
+            } else if (aufbauseminarSteps.length > 0) {
+                 const aufbauStartDate = aufbauseminarSteps[0].dueDate;
+                 if (new Date() >= aufbauStartDate) {
+                     shouldBlur = false;
+                 }
+            }
+
+            if (shouldBlur) {
+                aufbauWrapper.classList.add('aufbauseminar-blurred');
+            } else {
+                aufbauWrapper.classList.remove('aufbauseminar-blurred');
+            }
+
             renderTimelineSection(dom.grundseminarStepsContainer, dom.grundseminarProgress, dom.grundseminarDateMarkers, grundseminarSteps);
             renderTimelineSection(dom.aufbauseminarStepsContainer, dom.aufbauseminarProgress, dom.aufbauseminarDateMarkers, aufbauseminarSteps);
         }
@@ -1581,10 +1826,10 @@
             clearChildren(container);
             
             if (steps.length === 0) {
-                 container.innerHTML = '<p class="text-center text-gray-500 mt-4">Für diesen Abschnitt sind keine Schritte vorhanden.</p>';
-                 progressElement.style.height = '0%';
-                 clearChildren(dateMarkerContainer);
-                 return;
+                container.innerHTML = '<p class="text-center text-gray-500 mt-4">Für diesen Abschnitt sind keine Schritte vorhanden.</p>';
+                progressElement.style.height = '0%';
+                clearChildren(dateMarkerContainer);
+                return;
             }
             
             const sectionStartDate = steps[0].dueDate;
@@ -1614,23 +1859,22 @@
                 let statusClass = '';
                 let iconClass = 'fa-question';
                 let typeClass = '';
-                let isLocked = false;
-                const isMajor = titleLower.includes('informationsabend') ||
-                                titleLower.includes('seminar karrierestart') ||
-                                titleLower.includes('grundseminar') ||
-                                titleLower.includes('aufbauseminar');
+                const stepType = step.type.toLowerCase().trim();
+                const isMajor = stepType === 'meilenstein' || stepType === 'seminar';
+
+                // Check for overdue
+                const threeDays = 3 * 24 * 60 * 60 * 1000;
+                const isOverdue = !step.completed && (today.getTime() - step.dueDate.getTime() > threeDays);
 
                 if (step.completed) {
                     statusClass = 'completed';
                 } else if (step.dueDate <= today) {
                     statusClass = 'due'; 
                 } else {
-                    statusClass = 'future locked';
-                    isLocked = true;
+                    statusClass = 'future';
                 }
                 
-                const type = step.type.toLowerCase().trim();
-                switch(type) {
+                switch(stepType) {
                     case 'seminar': 
                         iconClass = 'fa-book'; 
                         typeClass = 'seminar';
@@ -1643,20 +1887,22 @@
                         iconClass = 'fa-star'; 
                         typeClass = 'meilenstein';
                         break;
+                    case 'hausübung':
+                        iconClass = 'fa-pencil-alt';
+                        typeClass = 'hausuebung';
+                        break;
                     default:
                         typeClass = 'other';
                         break;
                 }
                 
-                if (isLocked) iconClass = 'fa-lock';
-
                 stepEl.className = `timeline-item ${statusClass} ${typeClass} ${isMajor ? 'timeline-item-major' : 'timeline-item-minor'}`;
                 stepEl.style.animationDelay = `${index * 0.1}s`;
                 
                 const formattedDate = step.dueDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 
                 stepEl.innerHTML = `
-                    <div class="timeline-content">
+                    <div class="timeline-content ${isOverdue ? 'overdue-task' : ''}">
                         <div class="timeline-header">
                             <div class="timeline-icon-inline">
                                 <i class="fas ${iconClass}"></i>
@@ -1669,15 +1915,13 @@
                     </div>
                 `;
 
-                if (!isLocked || isMajor) {
-                     stepEl.querySelector('.timeline-content').addEventListener('click', () => {
-                        dom.hinweisModalContent.textContent = step.hint;
-                        dom.hinweisModal.classList.add('visible');
-                        document.body.classList.add('modal-open');
-                        document.documentElement.classList.add('modal-open');
-                    });
-                }
-               
+                stepEl.querySelector('.timeline-content').addEventListener('click', () => {
+                    dom.hinweisModalContent.textContent = step.hint;
+                    dom.hinweisModal.classList.add('visible');
+                    document.body.classList.add('modal-open');
+                    document.documentElement.classList.add('modal-open');
+                });
+                
                 container.appendChild(stepEl);
             });
         }
@@ -1738,16 +1982,16 @@
 
                 if (name.startsWith('geschäftsstelle ') && bezirksleiter === currentUserNameLower) {
                      agenciesData.push({
-                        name: rowData[0]?.v || 'Unbekannt',
-                        ehGoal: Math.round(rowData[1]?.v || 0),
-                        ehCurrent: Math.round(rowData[2]?.v || 0),
-                        etGoal: Math.round(rowData[3]?.v || 0),
-                        etCurrent: Math.round(rowData[4]?.v || 0),
-                        atGoal: Math.round(rowData[5]?.v || 0),
-                        atVereinbart: Math.round(rowData[6]?.v || 0),
-                        atCurrent: Math.round(rowData[7]?.v || 0),
-                        position: rowData[8]?.v || 'Geschäftsstelle'
-                    });
+                         name: rowData[0]?.v || 'Unbekannt',
+                         ehGoal: Math.round(rowData[1]?.v || 0),
+                         ehCurrent: Math.round(rowData[2]?.v || 0),
+                         etGoal: Math.round(rowData[3]?.v || 0),
+                         etCurrent: Math.round(rowData[4]?.v || 0),
+                         atGoal: Math.round(rowData[5]?.v || 0),
+                         atVereinbart: Math.round(rowData[6]?.v || 0),
+                         atCurrent: Math.round(rowData[7]?.v || 0),
+                         position: rowData[8]?.v || 'Geschäftsstelle'
+                     });
                 }
             }
             return agenciesData;
@@ -1848,138 +2092,6 @@
         }
 
 
-        async function fetchAndRenderDashboard(userName){
-            setStatus('Daten werden geladen...');
-            dom.dashboardSections.classList.add('opacity-0');
-            dom.welcomeHeader.textContent=`Willkommen, ${userName}`;
-            
-            await Promise.all([
-                fetchUserData(userName), 
-                fetchCurrentUserPromotionData(userName),
-                fetchLeaderPromotionData(),
-                fetchAndRenderOnboarding(userName) 
-            ]);
-            
-            if (dom.statusText.textContent.toLowerCase().includes('fehler')) {
-                dom.dashboardSections.classList.add('hidden');
-                return;
-            }
-            
-            dom.userPosition.textContent = personalData.position;
-            const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
-            
-            // Logik für Einarbeitungs-Banner (nur für Trainees)
-            if (isTrainee && personalData.totalCurrentEh === 0) {
-                dom.einarbeitungBanner.classList.remove('hidden');
-            } else {
-                dom.einarbeitungBanner.classList.add('hidden');
-            }
-
-            // Logik für Ansichten
-            if (!isTrainee) {
-                dom.planningViewToggle.classList.remove('hidden');
-                dom.employeeView.classList.add('hidden');
-                
-                renderLeaderPersonalGoal(userName);
-                
-                const teamMembers = await findTeamMembers(userName);
-                await calculateTeamAndStructureData(userName, teamMembers);
-                
-                const positionLower = personalData.position ? personalData.position.toLowerCase() : '';
-                const isBezirksleiterOrWerdender = positionLower.includes('bezirksleiter') || positionLower.includes('werdender bezirksleiter');
-
-                if (isBezirksleiterOrWerdender) {
-                    dom.strukturViewBtn.classList.remove('hidden');
-                    currentPlanningView = 'struktur';
-                    dom.strukturViewBtn.classList.add('active');
-                    dom.teamViewBtn.classList.remove('active');
-                    dom.personalViewBtn.classList.remove('active');
-                    dom.monthlyPlanningTitle.textContent = "Struktur Monatsplanung";
-                    updateMonthlyPlanningView(structureData);
-                } else {
-                    dom.strukturViewBtn.classList.add('hidden');
-                    currentPlanningView = 'team';
-                    dom.teamViewBtn.classList.add('active');
-                    dom.strukturViewBtn.classList.remove('active');
-                    dom.personalViewBtn.classList.remove('active');
-                    dom.monthlyPlanningTitle.textContent = "Team Monatsplanung";
-                    updateMonthlyPlanningView(teamData);
-                }
-                updateLeadershipView();
-
-            } else {
-                dom.planningViewToggle.classList.add('hidden');
-                dom.leadershipView.classList.add('hidden');
-                dom.employeeView.classList.remove('hidden');
-                updateMonthlyPlanningView(personalData);
-                updateEmployeeCareerView();
-                dom.monthlyPlanningTitle.textContent = "Deine Monatsplanung";
-            }
-
-            setStatus('');
-            dom.dashboardSections.classList.remove('hidden');
-            setTimeout(() => dom.dashboardSections.classList.remove('opacity-0'), 50);
-            updateBackButtonVisibility();
-        }
-
-        async function calculateTeamAndStructureData(userName, team) {
-            const { startDate, endDate } = getMonthlyCycleDates();
-            const today = new Date();
-            cachedCycleData.totalDaysInCycle = (endDate - startDate) / (1000 * 60 * 60 * 24);
-            cachedCycleData.daysPassedInCycle = Math.max(0, (today - startDate) / (1000 * 60 * 60 * 24));
-
-            const memberDataPromises = team.map(async (memberName) => {
-                const query = `select B, C, D, E, F, G, H, J where A = '${memberName.trim()}'`;
-                const data = await fetchSheetQuery(sheetDataName, query);
-                if (data && data.table.rows.length > 0) {
-                    const row = data.table.rows[0].c;
-                    return { name: memberName, ehGoal: Math.round(row[0]?.v || 0), ehCurrent: Math.round(row[1]?.v || 0), etGoal: Math.round(row[2]?.v || 0), etCurrent: Math.round(row[3]?.v || 0), atGoal: Math.round(row[4]?.v || 0), atVereinbart: Math.round(row[5]?.v || 0), atCurrent: Math.round(row[6]?.v || 0), position: row[7]?.v || 'N/A' };
-                }
-                return null;
-            });
-            
-            const membersData = (await Promise.all(memberDataPromises)).filter(Boolean);
-            const teamMembersTotal = membersData.reduce((acc, member) => {
-                acc.ehGoal += member.ehGoal;
-                acc.ehCurrent += member.ehCurrent;
-                acc.etGoal += member.etGoal;
-                acc.etCurrent += member.etCurrent;
-                acc.atGoal += member.atGoal;
-                acc.atVereinbart += member.atVereinbart;
-                acc.atCurrent += member.atCurrent;
-                return acc;
-            }, { ehGoal: 0, ehCurrent: 0, etGoal: 0, etCurrent: 0, atGoal: 0, atVereinbart: 0, atCurrent: 0 });
-
-            teamData = {
-                ehGoal: teamMembersTotal.ehGoal + (personalData.ehGoal || 0),
-                ehCurrent: teamMembersTotal.ehCurrent + (personalData.ehCurrent || 0),
-                etGoal: teamMembersTotal.etGoal + (personalData.etGoal || 0),
-                etCurrent: teamMembersTotal.etCurrent + (personalData.etCurrent || 0),
-                atGoal: teamMembersTotal.atGoal + (personalData.atGoal || 0),
-                atVereinbart: teamMembersTotal.atVereinbart + (personalData.atVereinbart || 0),
-                atCurrent: teamMembersTotal.atCurrent + (personalData.atCurrent || 0)
-            };
-
-            cachedActiveMembers = membersData;
-            
-            if (personalData.position.toLowerCase().includes('bezirksleiter')) {
-                cachedAgenciesData = await fetchAgenciesData(userName);
-                structureData = JSON.parse(JSON.stringify(teamData));
-                cachedAgenciesData.forEach(agency => {
-                    structureData.ehGoal += agency.ehGoal;
-                    structureData.ehCurrent += agency.ehCurrent;
-                    structureData.etGoal += agency.etGoal;
-                    structureData.etCurrent += agency.etCurrent;
-                    structureData.atGoal += agency.atGoal;
-                    structureData.atVereinbart += agency.atVereinbart;
-                    structureData.atCurrent += agency.atCurrent;
-                });
-            } else {
-                cachedAgenciesData = [];
-                structureData = JSON.parse(JSON.stringify(teamData));
-            }
-        }
-
         async function getAllUsers() {
             if (allUsersCache.length > 0) return allUsersCache;
             
@@ -2016,8 +2128,10 @@
         function switchView(viewName) {
             currentView = viewName;
             if (viewName === 'einarbeitung') {
+                localStorage.setItem('hasVisitedOnboarding', 'true'); // Banner-Logik
                 dom.mainDashboardView.classList.add('hidden');
                 dom.einarbeitungView.classList.remove('hidden');
+                dom.einarbeitungBanner.classList.add('hidden');
             } else { // 'dashboard'
                 dom.einarbeitungView.classList.add('hidden');
                 dom.mainDashboardView.classList.remove('hidden');
@@ -2072,8 +2186,8 @@
             if (currentLeadershipViewMode === 'grid') {
                  dom.teamMembersContainer.className = 'mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
                  cachedAgenciesData.forEach(agency => {
-                    const card = createMemberCardGrid(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
-                    dom.teamMembersContainer.appendChild(card);
+                     const card = createMemberCardGrid(agency, cachedCycleData.totalDaysInCycle, cachedCycleData.daysPassedInCycle);
+                     dom.teamMembersContainer.appendChild(card);
                  });
             } else { // list
                 dom.teamMembersContainer.className = 'mt-6 space-y-4';
@@ -2246,7 +2360,7 @@
 
         // --- INIT ---
         document.addEventListener('DOMContentLoaded', () => {
-            registerServiceWorker();
+            // registerServiceWorker(); // FIX: Verursacht Fehler, wenn keine service-worker.js Datei existiert
 
             const savedUser = localStorage.getItem('loggedInUser');
             if (savedUser) {
@@ -2303,3 +2417,5 @@
     </script>
 </body>
 </html>
+
+
