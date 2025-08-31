@@ -25,7 +25,7 @@
             --color-accent-red: #FF6347;
             --color-accent-yellow: #f1c40f;
             --color-accent-gold: #d4af37;
-            --color-accent-gold-light: #fffbeb; /* NEU für Hintergrund */
+            --color-accent-gold-light: #fff3cd; /* UPDATE für satteren Hintergrund */
             --color-accent-purple: #8e44ad; /* NEUE FARBE FÜR PERSÖNLICHE GESPRÄCHE */
         }
 
@@ -85,7 +85,32 @@
         .employee-slot { width: 20px; height: 20px; background-color: var(--color-skt-grey-medium); border-radius: 50%; transition: background-color 0.3s ease-out; border: 1px solid var(--color-skt-grey-medium); }
         .employee-slot.filled { background-color: var(--color-accent-green); }
         
-        .dropdown-menu { position: absolute; top: 100%; left: 0; background-color: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); z-index: 50; width: 200px; margin-top: 8px; max-height: 300px; overflow-y: auto; }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 50;
+            width: 200px;
+            margin-top: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            transform: translateY(-10px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .dropdown-menu.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+        }
         
         .week-divider { position: absolute; height: calc(100% + 0.25rem); top: -0.125rem; width: 2px; background-color: #e2e8f0; z-index: 10; }
         .start-end-divider { position: absolute; height: calc(100% + 0.25rem); top: -0.125rem; width: 2px; background-color: #e2e8f0; z-index: 10; }
@@ -430,13 +455,19 @@
                     <button id="back-button" class="hidden bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Zurück">
                         <i class="fas fa-arrow-left"></i>
                     </button>
-                     <!-- KORRIGIERT: Button ist jetzt standardmäßig sichtbar -->
                     <button id="einarbeitung-btn" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Meine Einarbeitung">
                         <i class="fas fa-graduation-cap"></i>
                     </button>
-                    <button id="user-switch-button" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Benutzer wechseln">
-                        <i class="fas fa-right-from-bracket"></i>
-                    </button>
+                    <!-- UPDATE: Settings Button with Dropdown -->
+                    <div class="relative">
+                        <button id="settings-btn" class="bg-skt-blue-light text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-skt-blue-main transition-colors h-10 w-10 flex items-center justify-center" title="Einstellungen">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div id="settings-menu" class="dropdown-menu hidden">
+                             <a href="#" id="clear-cache-btn" class="block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-sync-alt w-5 mr-2"></i>Cache leeren</a>
+                             <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-skt-blue hover:bg-skt-grey-light"><i class="fas fa-right-from-bracket w-5 mr-2"></i>Logout</a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
@@ -496,7 +527,7 @@
                                 </div>
                             </div>
                             <!-- UPDATE: Bewerbungsgespräche mit Balken -->
-                            <div class="p-4 bg-accent-gold-light rounded-xl shadow-md">
+                            <div class="p-4 bg-accent-gold-light rounded-xl shadow-md border-2 border-accent-gold">
                                 <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
                                     <p class="text-sm text-skt-blue-light font-bold" data-tooltip="Fortschritt deiner gehaltenen Bewerbungsgespräche.">Bewerbungsgespräche</p>
                                     <p class="text-xl font-bold text-skt-blue mt-2 sm:mt-0"><span id="et-current">0</span> / <span id="et-goal">0</span></p>
@@ -578,14 +609,15 @@
          <div class="bg-white rounded-2xl p-6 md:p-8 shadow-lg">
              <h2 class="text-3xl font-bold text-skt-blue mb-8 text-center">Dein Einarbeitungsplan</h2>
              
-             <!-- NEU: Gesamtfortschrittsanzeige -->
+             <!-- UPDATE: Gesamtfortschrittsanzeige mit Soll -->
              <div id="onboarding-progress-container" class="mb-8 px-2 md:px-4">
                  <div class="flex justify-between items-center mb-1">
                      <p class="font-semibold text-skt-blue">Gesamtfortschritt</p>
                      <p id="onboarding-progress-text" class="font-bold text-skt-blue">0%</p>
                  </div>
-                 <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner">
-                     <div id="onboarding-progress-bar" class="bg-skt-green-accent h-4 rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                 <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner relative">
+                    <div id="onboarding-soll-bar" class="bg-red-300 h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 1;" data-tooltip="Soll-Fortschritt"></div>
+                    <div id="onboarding-progress-bar" class="bg-skt-green-accent h-4 rounded-full absolute top-0 left-0 transition-all duration-700 ease-out" style="width: 0%; z-index: 2;" data-tooltip="Ist-Fortschritt"></div>
                  </div>
              </div>
 
@@ -747,7 +779,10 @@
                 document.getElementById('tier-3-progress'),
                 document.getElementById('tier-gst-progress')
             ],
-            userSwitchButton: document.getElementById('user-switch-button'),
+            settingsBtn: document.getElementById('settings-btn'),
+            settingsMenu: document.getElementById('settings-menu'),
+            logoutBtn: document.getElementById('logout-btn'),
+            clearCacheBtn: document.getElementById('clear-cache-btn'),
             backButton: document.getElementById('back-button'), 
             monthlyPlanningTitle: document.getElementById('monthly-planning-title'),
             monthlyPlanningView: document.getElementById('monthly-planning-view'), // NEU
@@ -1054,8 +1089,20 @@
                     return;
                 }
                 
-                dom.userPosition.textContent = personalData.position;
                 const isTrainee = personalData.position && personalData.position.toLowerCase().trim() === 'trainee';
+
+                // UPDATE: Trainee-Stufe anzeigen
+                if (isTrainee) {
+                    let traineeLevel = "Trainee I"; // T1
+                    if (personalData.totalCurrentEh >= 2500) {
+                        traineeLevel = "Trainee III"; // T3
+                    } else if (personalData.totalCurrentEh >= 1250) {
+                        traineeLevel = "Trainee II"; // T2
+                    }
+                    dom.userPosition.textContent = traineeLevel;
+                } else {
+                    dom.userPosition.textContent = personalData.position;
+                }
                 
                 // UPDATE: Banner-Logik mit localStorage
                 if (isTrainee && personalData.totalCurrentEh === 0 && !localStorage.getItem('hasVisitedOnboarding')) {
@@ -1510,6 +1557,7 @@
 
         function createMemberCardGrid(member, totalDaysInCycle, daysPassedInCycle) {
             const ehPercentage = member.ehGoal > 0 ? (member.ehCurrent / member.ehGoal * 100) : 0;
+            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal * 100) : 0;
             const ehColorHex = getProgressColorHex(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const memberId = member.name.replace(/[^a-zA-Z0-9]/g, '');
@@ -1524,7 +1572,15 @@
             const circumference = 2 * Math.PI * radius;
             const offset = circumference * (1 - Math.min(ehPercentage, 100) / 100);
             
-            const positionHtml = member.position.toLowerCase() !== 'geschäftsstelle' ? `<p class="text-sm text-skt-blue-light">${member.position}</p>` : `<p class="text-sm ${prognosis.colorClass} font-semibold">${prognosis.text}</p>`;
+            let positionHtml = '';
+            const posLower = member.position.toLowerCase().trim();
+            if (posLower !== 'trainee') {
+                if (posLower === 'geschäftsstelle') {
+                    positionHtml = `<p class="text-sm ${prognosis.colorClass} font-semibold">${prognosis.text}</p>`;
+                } else {
+                    positionHtml = `<p class="text-sm text-skt-blue-light">${member.position}</p>`;
+                }
+            }
 
             summary.innerHTML = `
                 <div class="flex justify-between items-center mb-4">
@@ -1550,41 +1606,30 @@
                         </div>
                     </div>
                 </div>
+                <div class="mt-4 px-2">
+                    <div class="flex justify-between items-baseline text-xs">
+                        <p class="text-skt-blue-light">ET Termine</p>
+                        <p class="font-semibold text-skt-blue">${member.etCurrent} / ${member.etGoal}</p>
+                    </div>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
+                         <div class="h-full bg-skt-green-accent" style="width: ${Math.min(etPercentage, 100)}%;"></div>
+                    </div>
+                </div>
             `;
 
             const details = document.createElement('div');
             details.className = 'team-member-details px-4';
-
-            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal) * 100 : 0;
-            let etDetailsHtml = member.etGoal > 0 ? `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Bewerbungsgespräche</p>
-                    <p class="text-md font-bold text-skt-blue">${member.etCurrent} / ${member.etGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Ziel</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(etPercentage, 100)}%;"></div>
-                    </div>
-                </div>
-            ` : `<div class="text-center flex flex-col justify-center h-full"><p class="text-sm font-semibold text-skt-blue">Bewerbungsgespräche</p><p class="text-xs text-skt-red-accent font-semibold mt-1">Im nächsten PG Ziele & Karriere besprechen.</p></div>`;
-
-            const vereinbartPercent = member.atGoal > 0 ? (member.atVereinbart / member.atGoal) * 100 : 0;
-            const gehaltenPercent = member.atGoal > 0 ? (member.atCurrent / member.atGoal) * 100 : 0;
-            const atDetailsHtml = `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
-                    <p class="text-md font-bold text-skt-blue">${member.atCurrent} / ${member.atVereinbart} / ${member.atGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(vereinbartPercent, 100)}%;"></div>
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(gehaltenPercent, 100)}%;"></div>
-                    </div>
-                </div>
-            `;
-
             details.innerHTML = `
-                <div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    ${etDetailsHtml}
-                    ${atDetailsHtml}
+                <div class="details-grid grid grid-cols-1 gap-4">
+                    <div class="text-center">
+                        <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
+                        <p class="text-md font-bold text-skt-blue">${member.atCurrent} / ${member.atVereinbart} / ${member.atGoal}</p>
+                        <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
+                        <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
+                            <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(member.atGoal > 0 ? (member.atVereinbart / member.atGoal) * 100 : 0, 100)}%;"></div>
+                            <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(member.atGoal > 0 ? (member.atCurrent / member.atGoal) * 100 : 0, 100)}%;"></div>
+                        </div>
+                    </div>
                     <div class="sm:col-span-2" id="leader-goal-${memberId}"></div>
                 </div>`;
 
@@ -1603,6 +1648,7 @@
 
         function createMemberCardList(member, totalDaysInCycle, daysPassedInCycle) {
             const ehPercentage = member.ehGoal > 0 ? (member.ehCurrent / member.ehGoal * 100) : 0;
+            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal) * 100 : 0;
             const ehColorClass = getProgressColorClass(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const prognosis = getPrognosis(member.ehCurrent, member.ehGoal, totalDaysInCycle, daysPassedInCycle);
             const memberId = member.name.replace(/[^a-zA-Z0-9]/g, '');
@@ -1613,11 +1659,13 @@
             const summary = document.createElement('div');
             summary.className = 'p-4 cursor-pointer';
             
+            const positionHtml = member.position.toLowerCase().trim() !== 'trainee' ? `<p class="text-sm text-skt-blue-light">${member.position}</p>` : '';
+
             summary.innerHTML = `
                 <div class="flex justify-between items-start gap-2">
                     <div class="min-w-0">
                         <p class="font-bold text-skt-blue text-lg break-words">${member.name}</p>
-                        <p class="text-sm text-skt-blue-light">${member.position}</p>
+                        ${positionHtml}
                     </div>
                     <div class="flex items-center space-x-4 flex-shrink-0">
                         <span class="font-semibold text-sm ${prognosis.colorClass}" data-tooltip="Prognose basierend auf dem aktuellen Fortschritt im Verhältnis zur vergangenen Zeit im Monat.">${prognosis.text}</span>
@@ -1627,48 +1675,37 @@
                 </div>
                 <div class="mt-2">
                     <div class="flex justify-between items-baseline">
-                         <p class="text-xs text-skt-blue-light">Monatsfortschritt (EH)</p>
+                         <p class="text-xs text-skt-blue-light">Einheiten (EH)</p>
                          <p class="text-xs font-semibold text-skt-blue">${member.ehCurrent.toLocaleString('de-DE')} / ${member.ehGoal.toLocaleString('de-DE')}</p>
                     </div>
                     <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
                         <div class="h-full ${ehColorClass}" style="width: ${Math.min(ehPercentage, 100)}%;"></div>
                     </div>
                 </div>
+                <div class="mt-2">
+                    <div class="flex justify-between items-baseline">
+                         <p class="text-xs text-skt-blue-light">ET Termine</p>
+                         <p class="text-xs font-semibold text-skt-blue">${member.etCurrent} / ${member.etGoal}</p>
+                    </div>
+                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden mt-1">
+                        <div class="h-full bg-skt-green-accent" style="width: ${Math.min(etPercentage, 100)}%;"></div>
+                    </div>
+                </div>
             `;
 
             const details = document.createElement('div');
             details.className = 'team-member-details px-4';
-
-            const etPercentage = member.etGoal > 0 ? (member.etCurrent / member.etGoal) * 100 : 0;
-            let etDetailsHtml = member.etGoal > 0 ? `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Bewerbungsgespräche</p>
-                    <p class="text-md font-bold text-skt-blue">${member.etCurrent} / ${member.etGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Ziel</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(etPercentage, 100)}%;"></div>
-                    </div>
-                </div>
-            ` : `<div class="text-center flex flex-col justify-center h-full"><p class="text-sm font-semibold text-skt-blue">Bewerbungsgespräche</p><p class="text-xs text-skt-red-accent font-semibold mt-1">Im nächsten PG Ziele & Karriere besprechen.</p></div>`;
-
-            const vereinbartPercent = member.atGoal > 0 ? (member.atVereinbart / member.atGoal) * 100 : 0;
-            const gehaltenPercent = member.atGoal > 0 ? (member.atCurrent / member.atGoal) * 100 : 0;
-            const atDetailsHtml = `
-                <div class="text-center">
-                    <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
-                    <p class="text-md font-bold text-skt-blue">${member.atCurrent} / ${member.atVereinbart} / ${member.atGoal}</p>
-                    <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
-                    <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
-                        <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(vereinbartPercent, 100)}%;"></div>
-                        <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(gehaltenPercent, 100)}%;"></div>
-                    </div>
-                </div>
-            `;
-
             details.innerHTML = `
-                <div class="details-grid grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    ${etDetailsHtml}
-                    ${atDetailsHtml}
+                <div class="details-grid grid grid-cols-1 gap-4">
+                     <div class="text-center">
+                        <p class="text-sm font-semibold text-skt-blue mb-1">Analysetermine</p>
+                        <p class="text-md font-bold text-skt-blue">${member.atCurrent} / ${member.atVereinbart} / ${member.atGoal}</p>
+                        <p class="text-xs text-gray-500 mb-2">Gehalten / Vereinbart / Soll</p>
+                        <div class="w-full bg-skt-grey-medium h-2.5 rounded-full overflow-hidden relative">
+                            <div class="h-full bg-skt-yellow-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(member.atGoal > 0 ? (member.atVereinbart / member.atGoal) * 100 : 0, 100)}%;"></div>
+                            <div class="h-full bg-skt-green-accent absolute top-0 left-0 transition-all duration-700 ease-out" style="width: ${Math.min(member.atGoal > 0 ? (member.atCurrent / member.atGoal) * 100 : 0, 100)}%;"></div>
+                        </div>
+                    </div>
                     <div class="sm:col-span-2" id="leader-goal-${memberId}"></div>
                 </div>`;
 
@@ -1687,7 +1724,6 @@
         
         // --- NEUE FUNKTIONEN FÜR EINARBEITUNG ---
         async function fetchAndRenderOnboarding(userName) {
-            // FIX: Progress bar container anfangs ausblenden
             const progressContainer = document.getElementById('onboarding-progress-container');
             if (progressContainer) progressContainer.classList.add('hidden');
 
@@ -1785,19 +1821,42 @@
                 }
             }
 
-            // NEU: Gesamtfortschritt berechnen und anzeigen
+            // UPDATE: Gesamtfortschritt und Soll-Fortschritt berechnen und anzeigen
             if (progressContainer) {
                 progressContainer.classList.remove('hidden');
                 const totalSteps = allSteps.length;
                 const completedSteps = allSteps.filter(step => step.completed).length;
                 const progressPercentage = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+                
                 const progressBar = document.getElementById('onboarding-progress-bar');
                 const progressText = document.getElementById('onboarding-progress-text');
                 if(progressBar && progressText) {
                     progressBar.style.width = `${progressPercentage.toFixed(0)}%`;
                     progressText.textContent = `${progressPercentage.toFixed(0)}%`;
                 }
+
+                if (allSteps.length > 0) {
+                    const overallStartDate = allSteps[0].dueDate;
+                    const overallEndDate = allSteps[allSteps.length - 1].dueDate;
+                    const today = new Date();
+                    
+                    const totalPlanDuration = overallEndDate.getTime() - overallStartDate.getTime();
+                    const elapsedPlanDuration = today.getTime() - overallStartDate.getTime();
+
+                    let sollPercentage = 0;
+                    if (totalPlanDuration > 0) {
+                        sollPercentage = Math.max(0, Math.min(100, (elapsedPlanDuration / totalPlanDuration) * 100));
+                    } else if (today >= overallStartDate) {
+                        sollPercentage = 100;
+                    }
+
+                    const sollBar = document.getElementById('onboarding-soll-bar');
+                    if (sollBar) {
+                        sollBar.style.width = `${sollPercentage.toFixed(0)}%`;
+                    }
+                }
             }
+
 
             // UPDATE: Logik zum Blurring des Aufbauseminars
             const isGrundseminarComplete = grundseminarSteps.every(step => step.completed);
@@ -1956,7 +2015,7 @@
                 cursorDate.setMonth(cursorDate.getMonth() + 1);
             }
             
-            if(startDate.getMonth() !== endDate.getMonth() || startDate.getFullYear() !== endDate.getFullYear()){
+            if(startDate.getMonth() !== endDate.getFullYear() || startDate.getFullYear() !== endDate.getFullYear()){
                 createMarker(endDate);
             }
         }
@@ -2248,10 +2307,34 @@
 
 
         // --- EVENTS ---
-        dom.userSwitchButton.addEventListener('click', () => {
+        dom.settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dom.settingsMenu.classList.toggle('visible');
+            dom.settingsMenu.classList.toggle('hidden');
+        });
+        
+        dom.logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             localStorage.removeItem('loggedInUser');
+            localStorage.removeItem('hasVisitedOnboarding');
             viewHistory = [];
             location.reload();
+        });
+
+        dom.clearCacheBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.clear(); // Clear all local storage for this domain
+            if ('caches' in window) {
+                caches.keys().then(function(names) {
+                    for (let name of names) {
+                        caches.delete(name);
+                    }
+                }).then(() => {
+                    location.reload(true);
+                });
+            } else {
+                 location.reload(true);
+            }
         });
         
         dom.backButton.addEventListener('click', goBack);
@@ -2412,10 +2495,17 @@
                     document.documentElement.classList.remove('modal-open');
                 }
             });
+
+            // Click-Outside Listener für Settings-Menü
+            document.addEventListener('click', (e) => {
+                if (!dom.settingsBtn.contains(e.target) && !dom.settingsMenu.contains(e.target)) {
+                    dom.settingsMenu.classList.add('hidden');
+                    dom.settingsMenu.classList.remove('visible');
+                }
+            });
         });
 
     </script>
 </body>
 </html>
-
 
