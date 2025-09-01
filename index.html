@@ -946,7 +946,7 @@
         function filterUsers(rawUsers) {
             return rawUsers.filter(u => {
                 const n = u.toLowerCase().trim();
-                return n !== 'x' && !USER_FILTER_PREFIXES.some(f => n.startsWith(f) || n === f);
+                return n && n !== 'x' && !USER_FILTER_PREFIXES.some(f => n.startsWith(f) || n === f);
             });
         }
         
@@ -1269,7 +1269,7 @@
                 if (onboardingData && onboardingData.table && onboardingData.table.rows.length > 1) {
                     const nameRow = onboardingData.table.rows[1].c;
                     const userInOnboarding = nameRow.some(cell => cell && cell.v && cell.v.toLowerCase().trim() === userName.toLowerCase().trim());
-                    if (userInOnboarding && !localStorage.getItem('hasVisitedOnboarding')) {
+                    if (userInOnboarding && !localStorage.getItem('hasVisitedOnboarding') && personalData.totalCurrentEh < 1) {
                         dom.einarbeitungBanner.classList.remove('hidden');
                     } else {
                         dom.einarbeitungBanner.classList.add('hidden');
@@ -2225,9 +2225,39 @@
             dom.leaderOnboardingView.appendChild(container);
         }
 
-        async function renderTraineeOnboardingView(userName) {
+        async function renderTraineeOnboardingView(userName, forceShowAllCompleted = false) {
+            const renderCompletedMessage = () => {
+                if (progressContainer) progressContainer.classList.add('hidden');
+                if (dom.grundseminarContainer) dom.grundseminarContainer.classList.add('hidden');
+                if (dom.aufbauseminarContainer) dom.aufbauseminarContainer.classList.add('hidden');
+
+                if (!completedMessageContainer) {
+                    completedMessageContainer = document.createElement('div');
+                    completedMessageContainer.id = 'onboarding-completed-message';
+                    dom.traineeOnboardingView.appendChild(completedMessageContainer);
+                }
+                
+                completedMessageContainer.innerHTML = `
+                    <div class="text-center p-6 bg-skt-grey-light rounded-xl shadow-md">
+                        <i class="fas fa-user-graduate text-5xl text-skt-green-accent mb-4"></i>
+                        <h3 class="text-2xl font-bold text-skt-blue mb-2">Einarbeitung absolviert!</h3>
+                        <p class="text-gray-600 max-w-lg mx-auto">Herzlichen Glückwunsch, du hast alle Schritte der Einarbeitung erfolgreich abgeschlossen!</p>
+                        <button id="show-completed-plan-btn" class="mt-4 bg-skt-blue text-white font-semibold py-2 px-4 rounded-lg hover:bg-skt-blue-light transition-colors">Abgeschlossenen Plan ansehen</button>
+                    </div>
+                `;
+                completedMessageContainer.classList.remove('hidden');
+                document.getElementById('show-completed-plan-btn').addEventListener('click', () => renderTraineeOnboardingView(userName, true));
+            };
+
             const progressContainer = document.getElementById('onboarding-progress-container');
-            if (progressContainer) progressContainer.classList.add('hidden');
+            if (progressContainer) progressContainer.classList.remove('hidden');
+            if (dom.grundseminarContainer) dom.grundseminarContainer.classList.remove('hidden');
+            if (dom.aufbauseminarContainer) dom.aufbauseminarContainer.classList.remove('hidden');
+            
+            let completedMessageContainer = document.getElementById('onboarding-completed-message');
+            if (completedMessageContainer) {
+                completedMessageContainer.classList.add('hidden');
+            }
 
             const query = 'select *';
             const data = await fetchSheetQuery(sheetEinarbeitungName, query, 0);
@@ -2249,54 +2279,22 @@
                 }
             }
 
-            // Sicherheitsprüfungen, um Fehler zu vermeiden, falls Elemente nicht gefunden werden
-            const timelineWrapper = dom.grundseminarContainer ? dom.grundseminarContainer.querySelector('.timeline-wrapper') : null;
-            const aufbauContainer = dom.aufbauseminarContainer;
-            const progressContainerEl = document.getElementById('onboarding-progress-container');
-            const grundseminarTitle = dom.grundseminarContainer ? dom.grundseminarContainer.querySelector('h3') : null;
-
-            if (userColIndex === -1) {
-                // Trainee ist nicht im Einarbeitungs-Sheet -> Einarbeitung abgeschlossen
-                if (progressContainerEl) progressContainerEl.classList.add('hidden');
-                if (aufbauContainer) aufbauContainer.classList.add('hidden');
-                // Statt einzelner Teile, den ganzen Container verstecken
-                if (timelineWrapper) timelineWrapper.classList.add('hidden');
-                if (grundseminarTitle) grundseminarTitle.classList.add('hidden');
-                
-                dom.grundseminarStepsContainer.innerHTML = `
-                    <div class="text-center p-6">
-                        <i class="fas fa-user-graduate text-5xl text-skt-green-accent mb-4"></i>
-                        <h3 class="text-2xl font-bold text-skt-blue mb-2">Einarbeitung abgeschlossen!</h3>
-                        <p class="text-gray-600 max-w-lg mx-auto">Herzlichen Glückwunsch, du bist super eingearbeitet.</p>
-                    </div>
-                `;
-                dom.aufbauseminarStepsContainer.innerHTML = '';
-                return;
-            }
-            
-            // Ansicht für Benutzer mit Plan wiederherstellen
-            if (progressContainerEl) progressContainerEl.classList.remove('hidden');
-            if (aufbauContainer) aufbauContainer.classList.remove('hidden');
-            if (timelineWrapper) timelineWrapper.classList.remove('hidden');
-            if (grundseminarTitle) grundseminarTitle.classList.remove('hidden');
-
-            const startDateCell = dateRow[userColIndex];
-            if (!startDateCell || !startDateCell.v) {
-                dom.grundseminarStepsContainer.innerHTML = `<p class="text-center text-red-500">Dein Startdatum für die Einarbeitung ist nicht in Zeile 3 eingetragen.</p>`;
-                dom.aufbauseminarStepsContainer.innerHTML = '';
-                return;
-            }
-            
             let startDate;
-            if (startDateCell.v.startsWith("Date(")) {
-                const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
-                if (dateMatch) {
-                    startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
-                }
+            if (forceShowAllCompleted) {
+                startDate = new Date(); // Dummy-Datum, da keins vorhanden ist
+                if (progressContainer) progressContainer.classList.add('hidden'); // Fortschrittsbalken ausblenden
             } else {
-                const parts = startDateCell.v.split('.');
-                if (parts.length === 3) {
-                    startDate = new Date(parts[2], parts[1] - 1, parts[0]);
+                const startDateCell = userColIndex !== -1 ? dateRow[userColIndex] : null;
+                if (!startDateCell || !startDateCell.v) {
+                    renderCompletedMessage(); // Wenn kein Startdatum, dann als absolviert anzeigen
+                    return;
+                }
+                if (startDateCell.v.startsWith("Date(")) {
+                    const dateMatch = startDateCell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+                    if (dateMatch) startDate = new Date(dateMatch[1], dateMatch[2], dateMatch[3]);
+                } else {
+                    const parts = startDateCell.v.split('.');
+                    if (parts.length === 3) startDate = new Date(parts[2], parts[1] - 1, parts[0]);
                 }
             }
 
@@ -2326,10 +2324,16 @@
                     hint: row[1]?.v || 'Kein Hinweis verfügbar.',
                     title: title,
                     dueDate: dueDate,
-                    completed: row[userColIndex] && row[userColIndex].v === 'x'
+                    completed: forceShowAllCompleted || (userColIndex !== -1 && row[userColIndex] && row[userColIndex].v === 'x')
                 });
             }
             
+            const allTasksCompleted = allSteps.length > 0 && allSteps.every(s => s.completed);
+            if ((userColIndex === -1 || allTasksCompleted) && !forceShowAllCompleted) {
+                renderCompletedMessage();
+                return;
+            }
+
             const aufbauStartIndex = allSteps.findIndex(step => step.title.toLowerCase().includes('aufbauseminar'));
             let grundseminarSteps;
             let aufbauseminarSteps;
